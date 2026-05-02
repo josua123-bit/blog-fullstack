@@ -9,15 +9,15 @@
         body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; line-height: 1.7; opacity: 0; animation: fadeIn 0.6s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 20px; font-weight: 600; color: #fff; }
-        nav ul { list-style: none; display: flex; gap: 20px; align-items: center; }
-        nav ul a { color: #aaa; text-decoration: none; font-size: 15px; transition: color 0.2s; }
-        nav ul a:hover { color: #fff; }
-        .btn { background: #fff; color: #000; padding: 8px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; text-decoration: none; transition: opacity 0.2s; }
-        .btn:hover { opacity: 0.8; color: #000; }
-        .btn-outline { background: transparent; color: #aaa; border: 1px solid #333; padding: 8px 18px; border-radius: 6px; font-size: 14px; text-decoration: none; transition: all 0.2s; }
-        .btn-outline:hover { border-color: #fff; color: #fff; }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 22px; font-weight: 700; color: #fff; }
+        .nav-links { list-style: none; display: flex; gap: 16px; align-items: center; }
+        .nav-links a { color: #aaa; text-decoration: none; font-size: 15px; transition: color 0.2s; white-space: nowrap; }
+        .nav-links a:hover { color: #fff; }
+        .btn { background: #fff; color: #000 !important; padding: 8px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; transition: opacity 0.2s; white-space: nowrap; }
+        .btn:hover { opacity: 0.8; }
+        .btn-outline { background: transparent; color: #aaa !important; border: 1px solid #444; padding: 8px 20px; border-radius: 6px; font-size: 14px; text-decoration: none; transition: all 0.2s; white-space: nowrap; }
+        .btn-outline:hover { border-color: #fff; color: #fff !important; }
         .hero { text-align: center; padding: 80px 20px 60px; border-bottom: 1px solid #222; }
         .hero h1 { font-size: 42px; color: #fff; font-weight: 600; margin-bottom: 12px; opacity: 0; animation: fadeUp 0.7s ease 0.3s forwards; }
         .hero p { color: #888; font-size: 17px; opacity: 0; animation: fadeUp 0.7s ease 0.5s forwards; }
@@ -29,40 +29,38 @@
         .post-tag { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .post-card h2 { font-size: 20px; color: #fff; font-weight: 500; margin-bottom: 10px; }
         .post-card p { color: #777; font-size: 15px; }
-        .post-meta { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; color: #444; }
+        .post-meta { display: flex; gap: 16px; margin-top: 12px; font-size: 13px; color: #444; flex-wrap: wrap; }
         .empty { text-align: center; color: #444; padding: 60px 0; font-size: 16px; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; }
-        #userNav { display: none; gap: 20px; align-items: center; }
 
         @media (max-width: 768px) {
-            nav { padding: 16px 20px; flex-wrap: wrap; gap: 10px; }
-            nav .logo { font-size: 16px; }
-            nav ul { gap: 8px; flex-wrap: wrap; }
-            nav ul a { font-size: 13px; }
+            nav { padding: 14px 16px; }
+            nav .logo { font-size: 18px; }
+            .nav-links { gap: 8px; }
+            .nav-links a { font-size: 13px; }
             .btn, .btn-outline { padding: 6px 12px; font-size: 12px; }
             .hero { padding: 50px 20px 40px; }
             .hero h1 { font-size: 26px; }
             .hero p { font-size: 14px; }
             .container { padding: 30px 16px; }
             .post-card h2 { font-size: 17px; }
-            .post-meta { flex-wrap: wrap; gap: 8px; }
         }
     </style>
 </head>
 <body>
     <nav>
         <div class="logo">for heal</div>
-        <ul>
+        <ul class="nav-links" id="navLinks">
             <li><a href="index.html">Beranda</a></li>
-            <div id="guestNav">
-                <li><a href="login.html" class="btn-outline">Masuk</a></li>
-                <li><a href="register.html" class="btn">Daftar</a></li>
-            </div>
-            <div id="userNav">
-                <li><a href="tulis.html" class="btn-outline">✏️ Tulis</a></li>
-                <li><span id="usernameDisplay" style="color:#aaa; font-size:14px;"></span></li>
-                <li><a href="#" onclick="logout()" class="btn">Keluar</a></li>
-            </div>
+            <li id="guestNav" style="display:flex; gap:8px; list-style:none;">
+                <a href="login.html" class="btn-outline">Masuk</a>
+                <a href="register.html" class="btn">Daftar</a>
+            </li>
+            <li id="userNav" style="display:none; gap:8px; align-items:center; list-style:none;">
+                <a href="tulis.html" class="btn-outline">✏️ Tulis</a>
+                <span id="usernameDisplay" style="color:#aaa; font-size:14px;"></span>
+                <a href="#" onclick="logout()" class="btn">Keluar</a>
+            </li>
         </ul>
     </nav>
 
