@@ -63,6 +63,7 @@ db.exec(`
         article_id INTEGER NOT NULL,
         author TEXT NOT NULL,
         text TEXT NOT NULL,
+        image_url TEXT,
         date TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (article_id) REFERENCES articles(id)
@@ -70,14 +71,17 @@ db.exec(`
 `);
 
 // =================== AUTH ===================
-app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Username dan password wajib diisi' });
-    const existing = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-    if (existing) return res.status(400).json({ message: 'Username sudah dipakai' });
-    const hashed = await bcrypt.hash(password, 10);
-    db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run(username, hashed);
-    res.json({ message: 'Registrasi berhasil!' });
+app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), (req, res) => {
+    const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
+    if (!article) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
+    const date = new Date().toLocaleDateString('id-ID');
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const text = req.body.text || '';
+    if (!text && !imageUrl) return res.status(400).json({ message: 'Komentar tidak boleh kosong!' });
+    db.prepare('INSERT INTO comments (article_id, author, text, image_url, date) VALUES (?, ?, ?, ?, ?)')
+        .run(req.params.id, req.user.username, text, imageUrl, date);
+    const comments = db.prepare('SELECT * FROM comments WHERE article_id = ?').all(article.id);
+    res.json({ message: 'Komentar ditambahkan!', comments });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -138,7 +142,8 @@ app.get('/api/articles/:id', (req, res) => {
 app.delete('/api/articles/:id', authMiddleware, (req, res) => {
     const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
     if (!article) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
-    if (article.author !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (article.author !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
     db.prepare('DELETE FROM comments WHERE article_id = ?').run(req.params.id);
     db.prepare('DELETE FROM articles WHERE id = ?').run(req.params.id);
     res.json({ message: 'Artikel berhasil dihapus!' });
