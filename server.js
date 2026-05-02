@@ -39,19 +39,6 @@ const upload = multer({
     }
 });
 
-const upload = multer({
-    storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowed = /jpeg|jpg|png|gif|webp/;
-        if (allowed.test(path.extname(file.originalname).toLowerCase())) {
-            cb(null, true);
-        } else {
-            cb(new Error('Hanya file gambar yang diperbolehkan!'));
-        }
-    }
-});
-
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
