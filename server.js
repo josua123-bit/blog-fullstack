@@ -11,7 +11,6 @@ require('dotenv').config();
 const app = express();
 const db = new Database('blog.db');
 
-// Setup upload foto
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -40,7 +39,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// =================== SETUP DATABASE ===================
 db.exec(`
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,25 +68,19 @@ db.exec(`
     );
 `);
 
-// Migration
 try {
     db.exec(`ALTER TABLE comments ADD COLUMN image_url TEXT`);
-} catch (e) {
-    // kolom sudah ada, skip
-}
+} catch (e) {}
 
 // =================== AUTH ===================
-app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), (req, res) => {
-    const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
-    if (!article) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
-    const date = new Date().toLocaleDateString('id-ID');
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
-    const text = req.body.text || '';
-    if (!text && !imageUrl) return res.status(400).json({ message: 'Komentar tidak boleh kosong!' });
-    db.prepare('INSERT INTO comments (article_id, author, text, image_url, date) VALUES (?, ?, ?, ?, ?)')
-        .run(req.params.id, req.user.username, text, imageUrl, date);
-    const comments = db.prepare('SELECT * FROM comments WHERE article_id = ?').all(article.id);
-    res.json({ message: 'Komentar ditambahkan!', comments });
+app.post('/api/register', async (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ message: 'Username dan password wajib diisi' });
+    const existing = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    if (existing) return res.status(400).json({ message: 'Username sudah dipakai' });
+    const hashed = await bcrypt.hash(password, 10);
+    db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run(username, hashed);
+    res.json({ message: 'Registrasi berhasil!' });
 });
 
 app.post('/api/login', async (req, res) => {
@@ -157,12 +149,15 @@ app.delete('/api/articles/:id', authMiddleware, (req, res) => {
 });
 
 // =================== KOMENTAR ===================
-app.post('/api/articles/:id/comments', authMiddleware, (req, res) => {
+app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), (req, res) => {
     const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
     if (!article) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const date = new Date().toLocaleDateString('id-ID');
-    db.prepare('INSERT INTO comments (article_id, author, text, date) VALUES (?, ?, ?, ?)')
-        .run(req.params.id, req.user.username, req.body.text, date);
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    const text = req.body.text || '';
+    if (!text && !imageUrl) return res.status(400).json({ message: 'Komentar tidak boleh kosong!' });
+    db.prepare('INSERT INTO comments (article_id, author, text, image_url, date) VALUES (?, ?, ?, ?, ?)')
+        .run(req.params.id, req.user.username, text, imageUrl, date);
     const comments = db.prepare('SELECT * FROM comments WHERE article_id = ?').all(article.id);
     res.json({ message: 'Komentar ditambahkan!', comments });
 });
