@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artikel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
+        .cover-img { width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 40px; }
+        .tag { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+        h1 { font-size: 36px; color: #fff; font-weight: 600; line-height: 1.3; margin-bottom: 16px; }
+        .meta { display: flex; gap: 16px; font-size: 13px; color: #444; margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid #1e1e1e; }
+        .content { font-size: 17px; color: #bbb; line-height: 1.9; white-space: pre-wrap; }
+        .delete-btn { background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.2s; margin-left: auto; }
+        .delete-btn:hover { background: #ff6b6b; color: #000; }
+        .comments { margin-top: 60px; padding-top: 40px; border-top: 1px solid #1e1e1e; }
+        .comments h2 { font-size: 18px; color: #fff; margin-bottom: 24px; }
+        .comment-card { padding: 20px 0; border-bottom: 1px solid #1a1a1a; }
+        .comment-author { font-size: 13px; color: #666; margin-bottom: 6px; }
+        .comment-author span { color: #aaa; font-weight: 500; }
+        .comment-text { font-size: 15px; color: #888; }
+        .comment-form { margin-top: 30px; }
+        .comment-form textarea { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 14px; color: #fff; font-size: 15px; outline: none; resize: vertical; min-height: 100px; font-family: 'Segoe UI', sans-serif; transition: border 0.2s; }
+        .comment-form textarea:focus { border-color: #555; }
+        .comment-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: opacity 0.2s; }
+        .comment-btn:hover { opacity: 0.85; }
+        .login-prompt { font-size: 14px; color: #555; margin-top: 20px; }
+        .login-prompt a { color: #aaa; text-decoration: none; }
+        .login-prompt a:hover { color: #fff; }
+        .empty-comment { color: #444; font-size: 14px; padding: 20px 0; }
+        .success { color: #6bffb8; font-size: 13px; margin-top: 8px; display: none; }
+        .error { color: #ff6b6b; font-size: 13px; margin-top: 8px; display: none; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">✦ Blog Pribadi</a>
+        <a href="index.html">← Kembali</a>
+    </nav>
+
+    <div class="container">
+        <div id="articleContent">
+            <p style="color:#444;">Memuat artikel...</p>
+        </div>
+
+        <div class="comments">
+            <h2>Komentar (<span id="commentCount">0</span>)</h2>
+            <div id="commentList"><p class="empty-comment">Belum ada komentar. Jadilah yang pertama!</p></div>
+
+            <div class="comment-form" id="commentForm">
+                <textarea id="commentText" placeholder="Tulis komentarmu..."></textarea>
+                <p class="error" id="errorMsg"></p>
+                <p class="success" id="successMsg"></p>
+                <button class="comment-btn" onclick="submitComment()">Kirim Komentar</button>
+            </div>
+            <p class="login-prompt" id="loginPrompt" style="display:none;">
+                <a href="login.html">Masuk</a> untuk meninggalkan komentar.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const currentUser = localStorage.getItem('username');
+        const params = new URLSearchParams(window.location.search);
+        const articleId = params.get('id');
+
+        if (!token) {
+            document.getElementById('commentForm').style.display = 'none';
+            document.getElementById('loginPrompt').style.display = 'block';
+        }
+
+        async function loadArticle() {
+            if (!articleId) { location.href = 'index.html'; return; }
+            try {
+                const res = await fetch(`/api/articles/${articleId}`);
+                if (!res.ok) { location.href = 'index.html'; return; }
+                const a = await res.json();
+
+                document.title = a.title;
+
+                const deleteBtn = currentUser
+                    ? `<button class="delete-btn" onclick="deleteArticle()">🗑 Hapus Artikel</button>`
+                    : '';
+
+                document.getElementById('articleContent').innerHTML = `
+                    ${a.image_url ? `<img src="${a.image_url}" class="cover-img" />` : ''}
+                    <p class="tag">${a.tag}</p>
+                    <h1>${a.title}</h1>
+                    <div class="meta">
+                        <span>✍️ ${a.author}</span>
+                        <span>📅 ${a.date}</span>
+                        ${deleteBtn}
+                    </div>
+                    <div class="content">${a.content}</div>
+                `;
+
+                renderComments(a.comments);
+            } catch {
+                location.href = 'index.html';
+            }
+        }
+
+        function renderComments(comments) {
+            document.getElementById('commentCount').textContent = comments.length;
+            const list = document.getElementById('commentList');
+            if (comments.length === 0) {
+                list.innerHTML = '<p class="empty-comment">Belum ada komentar. Jadilah yang pertama!</p>';
+                return;
+            }
+            list.innerHTML = comments.map(c => `
+                <div class="comment-card">
+                    <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                    <p class="comment-text">${c.text}</p>
+                </div>
+            `).join('');
+        }
+
+        async function submitComment() {
+            const text = document.getElementById('commentText').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            if (!text) {
+                errorMsg.textContent = 'Komentar tidak boleh kosong!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/articles/${articleId}/comments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    errorMsg.textContent = data.message;
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+                successMsg.textContent = 'Komentar berhasil dikirim!';
+                successMsg.style.display = 'block';
+                document.getElementById('commentText').value = '';
+                renderComments(data.comments);
+            } catch {
+                errorMsg.textContent = 'Gagal terhubung ke server.';
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        async function deleteArticle() {
+            if (!confirm('Yakin mau hapus artikel ini?')) return;
+            try {
+                const res = await fetch(`/api/articles/${articleId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    alert('Artikel berhasil dihapus!');
+                    location.href = 'index.html';
+                }
+            } catch {
+                alert('Gagal menghapus artikel.');
+            }
+        }
+
+        loadArticle();
+    </script>
+</body>
+</html>

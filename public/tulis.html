@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tulis Artikel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; width: 100%; }
+        h1 { font-size: 28px; color: #fff; font-weight: 600; margin-bottom: 8px; }
+        .subtitle { color: #555; font-size: 14px; margin-bottom: 40px; }
+        label { display: block; font-size: 13px; color: #777; margin-bottom: 6px; margin-top: 20px; }
+        input[type="text"], select, textarea { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 14px; color: #fff; font-size: 15px; outline: none; transition: border 0.2s; font-family: 'Segoe UI', sans-serif; }
+        input[type="file"] { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #aaa; font-size: 14px; outline: none; cursor: pointer; }
+        input:focus, select:focus, textarea:focus { border-color: #555; }
+        select option { background: #161616; }
+        textarea { resize: vertical; min-height: 280px; line-height: 1.7; }
+        #preview { display: none; width: 100%; border-radius: 8px; margin-top: 10px; max-height: 200px; object-fit: cover; }
+        .actions { display: flex; gap: 12px; margin-top: 28px; }
+        .submit-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 13px 28px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .submit-btn:hover { opacity: 0.85; }
+        .cancel-btn { background: transparent; color: #aaa; border: 1px solid #333; border-radius: 8px; padding: 13px 28px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; }
+        .cancel-btn:hover { border-color: #fff; color: #fff; }
+        .error { color: #ff6b6b; font-size: 13px; margin-top: 12px; display: none; }
+        .success { color: #6bffb8; font-size: 13px; margin-top: 12px; display: none; }
+        .char-count { font-size: 12px; color: #444; margin-top: 6px; text-align: right; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">✦ Blog Pribadi</a>
+        <a href="index.html">← Kembali</a>
+    </nav>
+
+    <div class="container">
+        <h1>Tulis Artikel</h1>
+        <p class="subtitle">Bagikan cerita, opini, atau refleksimu.</p>
+
+        <label>Judul Artikel</label>
+        <input type="text" id="title" placeholder="Judul yang menarik..." maxlength="100" />
+
+        <label>Kategori</label>
+        <select id="tag">
+            <option value="Refleksi">Refleksi</option>
+            <option value="Opini">Opini</option>
+            <option value="Cerita">Cerita</option>
+            <option value="Lifestyle">Lifestyle</option>
+            <option value="Lainnya">Lainnya</option>
+        </select>
+
+        <label>Foto Cover (opsional)</label>
+        <input type="file" id="coverImage" accept="image/*" onchange="previewImage()" />
+        <img id="preview" />
+
+        <label>Isi Artikel</label>
+        <textarea id="content" placeholder="Mulai menulis di sini..." oninput="updateCount()"></textarea>
+        <p class="char-count"><span id="charCount">0</span> karakter</p>
+
+        <p class="error" id="errorMsg"></p>
+        <p class="success" id="successMsg"></p>
+
+        <div class="actions">
+            <button class="submit-btn" onclick="publish()">Publikasikan</button>
+            <a href="index.html" class="cancel-btn">Batal</a>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) location.href = 'login.html';
+
+        function updateCount() {
+            document.getElementById('charCount').textContent = document.getElementById('content').value.length;
+        }
+
+        function previewImage() {
+            const file = document.getElementById('coverImage').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const preview = document.getElementById('preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function publish() {
+            const title = document.getElementById('title').value.trim();
+            const tag = document.getElementById('tag').value;
+            const content = document.getElementById('content').value.trim();
+            const imageFile = document.getElementById('coverImage').files[0];
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            if (!title || !content) {
+                errorMsg.textContent = 'Judul dan isi artikel wajib diisi!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+            if (content.length < 50) {
+                errorMsg.textContent = 'Isi artikel minimal 50 karakter!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                let imageUrl = null;
+                if (imageFile) {
+                    const formData = new FormData();
+                    formData.append('image', imageFile);
+                    const uploadRes = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token },
+                        body: formData
+                    });
+                    const uploadData = await uploadRes.json();
+                    if (uploadRes.ok) imageUrl = uploadData.url;
+                }
+
+                const res = await fetch('/api/articles', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({ title, tag, content, imageUrl })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    errorMsg.textContent = data.message;
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+                successMsg.textContent = 'Artikel berhasil dipublikasikan!';
+                successMsg.style.display = 'block';
+                setTimeout(() => location.href = 'index.html', 1500);
+            } catch {
+                errorMsg.textContent = 'Gagal terhubung ke server.';
+                errorMsg.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

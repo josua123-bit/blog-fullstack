@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        .center { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+        .card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; }
+        .card h2 { font-size: 24px; color: #fff; font-weight: 600; margin-bottom: 8px; }
+        .card p { color: #666; font-size: 14px; margin-bottom: 28px; }
+        label { display: block; font-size: 13px; color: #777; margin-bottom: 6px; margin-top: 16px; }
+        input { width: 100%; background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 14px; color: #fff; font-size: 15px; outline: none; transition: border 0.2s; }
+        input:focus { border-color: #555; }
+        .submit-btn { width: 100%; background: #fff; color: #000; border: none; border-radius: 8px; padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 24px; transition: opacity 0.2s; }
+        .submit-btn:hover { opacity: 0.85; }
+        .error { color: #ff6b6b; font-size: 13px; margin-top: 12px; display: none; text-align: center; }
+        .footer-link { text-align: center; margin-top: 20px; font-size: 14px; color: #555; }
+        .footer-link a { color: #aaa; text-decoration: none; }
+        .footer-link a:hover { color: #fff; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">jooo</a>
+    </nav>
+
+    <div class="center">
+        <div class="card">
+            <h2>Selamat datang</h2>
+            <p>Masuk untuk mulai menulis ceritamu.</p>
+
+            <label>Username</label>
+            <input type="text" id="username" placeholder="username kamu" />
+
+            <label>Password</label>
+            <input type="password" id="password" placeholder="••••••••" />
+
+            <p class="error" id="errorMsg"></p>
+
+            <button class="submit-btn" onclick="login()">Masuk</button>
+
+            <div class="footer-link">
+                Belum punya akun? <a href="register.html">Daftar sekarang</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function login() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!username || !password) {
+                errorMsg.textContent = 'Username dan password wajib diisi!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    errorMsg.textContent = data.message;
+                    errorMsg.style.display = 'block';
+                    return;
+                }
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('username', data.username);
+                location.href = 'index.html';
+            } catch {
+                errorMsg.textContent = 'Gagal terhubung ke server.';
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // Enter key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Enter') login();
+        });
+    </script>
+</body>
+</html>
