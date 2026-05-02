@@ -72,6 +72,10 @@ try {
     db.exec(`ALTER TABLE comments ADD COLUMN image_url TEXT`);
 } catch (e) {}
 
+try {
+    db.exec(`ALTER TABLE articles ADD COLUMN image_url TEXT`);
+} catch (e) {}
+
 // =================== AUTH ===================
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
