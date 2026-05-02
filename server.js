@@ -70,6 +70,13 @@ db.exec(`
     );
 `);
 
+// Migration
+try {
+    db.exec(`ALTER TABLE comments ADD COLUMN image_url TEXT`);
+} catch (e) {
+    // kolom sudah ada, skip
+}
+
 // =================== AUTH ===================
 app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), (req, res) => {
     const article = db.prepare('SELECT * FROM articles WHERE id = ?').get(req.params.id);
