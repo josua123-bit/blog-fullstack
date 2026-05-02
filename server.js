@@ -6,6 +6,13 @@ const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
 const { Pool } = require('pg');
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 require('dotenv').config();
 
 const app = express();
@@ -18,11 +25,17 @@ const pool = new Pool({
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname);
-        cb(null, Date.now() + ext);
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|gif|webp/;
+        if (allowed.test(path.extname(file.originalname).toLowerCase())) {
+            cb(null, true);
+        } else {
+            cb(new Error('Hanya file gambar yang diperbolehkan!'));
+        }
     }
 });
 
@@ -113,11 +126,20 @@ function authMiddleware(req, res, next) {
 }
 
 // =================== UPLOAD ===================
-app.post('/api/upload', authMiddleware, upload.single('image'), (req, res) => {
+app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'Tidak ada file yang diupload' });
-    res.json({ url: `/uploads/${req.file.filename}` });
+    try {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.file.buffer);
+        });
+        res.json({ url: result.secure_url });
+    } catch (error) {
+        res.status(500).json({ message: 'Gagal upload gambar' });
+    }
 });
-
 // =================== ARTIKEL ===================
 app.get('/api/articles', async (req, res) => {
     const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
@@ -161,7 +183,16 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
     const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const date = new Date().toLocaleDateString('id-ID');
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+    let imageUrl = null;
+    if (req.file) {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.file.buffer);
+        });
+        imageUrl = result.secure_url;
+    }
     const text = req.body.text || '';
     if (!text && !imageUrl) return res.status(400).json({ message: 'Komentar tidak boleh kosong!' });
     await pool.query(
