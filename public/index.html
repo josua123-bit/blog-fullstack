@@ -58,6 +58,7 @@
             </li>
             <li id="userNav" style="display:none; gap:8px; align-items:center; list-style:none;">
                 <a href="tulis.html" class="btn-outline">✏️ Tulis</a>
+                <a href="admin.html" id="adminBtn" style="display:none; color:#7c83fd; font-size:14px; text-decoration:none;">⚙️ Admin</a>
                 <span id="usernameDisplay" style="color:#aaa; font-size:14px;"></span>
                 <a href="#" onclick="logout()" class="btn">Keluar</a>
             </li>
@@ -83,6 +84,9 @@
             document.getElementById('guestNav').style.display = 'none';
             document.getElementById('userNav').style.display = 'flex';
             document.getElementById('usernameDisplay').textContent = '👤 ' + username;
+            if (username === 'arekujo001') {
+                document.getElementById('adminBtn').style.display = 'block';
+            }
         }
 
         function logout() {
