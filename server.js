@@ -14,16 +14,12 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-
 const app = express();
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
-
-const uploadDir = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -43,7 +39,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Setup database
 async function setupDB() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -69,8 +64,14 @@ async function setupDB() {
             text TEXT,
             image_url TEXT,
             date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS likes (
+            id SERIAL PRIMARY KEY,
+            article_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (article_id) REFERENCES articles(id)
+            UNIQUE(article_id, username)
         );
     `);
     console.log('Database siap!');
@@ -112,6 +113,19 @@ function authMiddleware(req, res, next) {
     }
 }
 
+function adminMiddleware(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Token tidak ada' });
+    try {
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        if (user.username !== process.env.ADMIN) return res.status(403).json({ message: 'Bukan admin' });
+        req.user = user;
+        next();
+    } catch {
+        res.status(401).json({ message: 'Token tidak valid' });
+    }
+}
+
 // =================== UPLOAD ===================
 app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'Tidak ada file yang diupload' });
@@ -123,16 +137,18 @@ app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res)
             }).end(req.file.buffer);
         });
         res.json({ url: result.secure_url });
-    } catch (error) {
+    } catch {
         res.status(500).json({ message: 'Gagal upload gambar' });
     }
 });
+
 // =================== ARTIKEL ===================
 app.get('/api/articles', async (req, res) => {
     const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
     const result = await Promise.all(articles.rows.map(async a => {
         const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [a.id]);
-        return { ...a, comments: comments.rows };
+        const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [a.id]);
+        return { ...a, comments: comments.rows, likes: parseInt(likes.rows[0].count) };
     }));
     res.json(result);
 });
@@ -152,7 +168,8 @@ app.get('/api/articles/:id', async (req, res) => {
     const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [req.params.id]);
-    res.json({ ...article.rows[0], comments: comments.rows });
+    const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [req.params.id]);
+    res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
 });
 
 app.delete('/api/articles/:id', authMiddleware, async (req, res) => {
@@ -161,8 +178,39 @@ app.delete('/api/articles/:id', authMiddleware, async (req, res) => {
     const isAdmin = req.user.username === process.env.ADMIN;
     if (article.rows[0].author !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
     await pool.query('DELETE FROM comments WHERE article_id = $1', [req.params.id]);
+    await pool.query('DELETE FROM likes WHERE article_id = $1', [req.params.id]);
     await pool.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
     res.json({ message: 'Artikel berhasil dihapus!' });
+});
+
+// =================== LIKES ===================
+app.post('/api/articles/:id/like', authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const username = req.user.username;
+    const existing = await pool.query('SELECT * FROM likes WHERE article_id = $1 AND username = $2', [id, username]);
+    if (existing.rows.length > 0) {
+        await pool.query('DELETE FROM likes WHERE article_id = $1 AND username = $2', [id, username]);
+        const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+        return res.json({ liked: false, count: parseInt(count.rows[0].count) });
+    }
+    await pool.query('INSERT INTO likes (article_id, username) VALUES ($1, $2)', [id, username]);
+    const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+    res.json({ liked: true, count: parseInt(count.rows[0].count) });
+});
+
+app.get('/api/articles/:id/likes', async (req, res) => {
+    const { id } = req.params;
+    const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+    const token = req.headers['authorization']?.split(' ')[1];
+    let liked = false;
+    if (token) {
+        try {
+            const user = jwt.verify(token, process.env.JWT_SECRET);
+            const existing = await pool.query('SELECT * FROM likes WHERE article_id = $1 AND username = $2', [id, user.username]);
+            liked = existing.rows.length > 0;
+        } catch {}
+    }
+    res.json({ count: parseInt(count.rows[0].count), liked });
 });
 
 // =================== KOMENTAR ===================
@@ -191,39 +239,22 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
 });
 
 // =================== ADMIN ===================
-
-// Middleware cek admin
-function adminMiddleware(req, res, next) {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Token tidak ada' });
-    try {
-        const user = jwt.verify(token, process.env.JWT_SECRET);
-        if (user.username !== process.env.ADMIN) return res.status(403).json({ message: 'Bukan admin' });
-        req.user = user;
-        next();
-    } catch {
-        res.status(401).json({ message: 'Token tidak valid' });
-    }
-}
-
-// Ambil semua user
 app.get('/api/admin/users', adminMiddleware, async (req, res) => {
     const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
     res.json(users.rows);
 });
 
-// Hapus user
 app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     const user = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
     if (user.rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
     if (user.rows[0].username === process.env.ADMIN) return res.status(403).json({ message: 'Tidak bisa hapus admin' });
     await pool.query('DELETE FROM comments WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM likes WHERE username = $1', [user.rows[0].username]);
     await pool.query('DELETE FROM articles WHERE author = $1', [user.rows[0].username]);
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ message: 'User berhasil dihapus!' });
 });
 
-// Ambil semua artikel (admin)
 app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
     const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
     res.json(articles.rows);

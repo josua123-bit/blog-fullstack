@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>all about me</title>
+    <title>all about us</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
@@ -16,11 +16,16 @@
         .cover-img { width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 40px; }
         .tag { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
         h1 { font-size: 36px; color: #fff; font-weight: 600; line-height: 1.3; margin-bottom: 16px; }
-        .meta { display: flex; gap: 16px; font-size: 13px; color: #444; margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid #1e1e1e; }
+        .meta { display: flex; gap: 16px; font-size: 13px; color: #444; margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid #1e1e1e; align-items: center; flex-wrap: wrap; }
         .content { font-size: 17px; color: #bbb; line-height: 1.9; white-space: pre-wrap; }
         .delete-btn { background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.2s; margin-left: auto; }
         .delete-btn:hover { background: #ff6b6b; color: #000; }
-        .comments { margin-top: 60px; padding-top: 40px; border-top: 1px solid #1e1e1e; }
+        .like-section { display: flex; align-items: center; gap: 12px; margin: 30px 0; padding: 20px 0; border-top: 1px solid #1e1e1e; border-bottom: 1px solid #1e1e1e; }
+        .like-btn { background: transparent; border: 1px solid #333; border-radius: 50px; padding: 10px 20px; color: #aaa; font-size: 15px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .like-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
+        .like-btn.liked { background: #ff6b6b22; border-color: #ff6b6b; color: #ff6b6b; }
+        .like-count { font-size: 14px; color: #555; }
+        .comments { margin-top: 20px; }
         .comments h2 { font-size: 18px; color: #fff; margin-bottom: 24px; }
         .comment-card { padding: 20px 0; border-bottom: 1px solid #1a1a1a; }
         .comment-author { font-size: 13px; color: #666; margin-bottom: 6px; }
@@ -41,13 +46,18 @@
 </head>
 <body>
     <nav>
-        <a href="index.html" class="logo">apa ini dawg</a>
+        <a href="index.html" class="logo">for heal</a>
         <a href="index.html">← Kembali</a>
     </nav>
 
     <div class="container">
         <div id="articleContent">
             <p style="color:#444;">Memuat artikel...</p>
+        </div>
+
+        <div class="like-section">
+            <button class="like-btn" id="likeBtn" onclick="toggleLike()">❤️ <span id="likeBtnText">Suka</span></button>
+            <span class="like-count" id="likeCount">0 suka</span>
         </div>
 
         <div class="comments">
@@ -86,13 +96,10 @@
                 const res = await fetch(`/api/articles/${articleId}`);
                 if (!res.ok) { location.href = 'index.html'; return; }
                 const a = await res.json();
-
                 document.title = a.title;
-
                 const deleteBtn = currentUser
-                    ? `<button class="delete-btn" onclick="deleteArticle()">🗑 Hapus Artikel</button>`
+                    ? `<button class="delete-btn" onclick="deleteArticle()">🗑 Hapus</button>`
                     : '';
-
                 document.getElementById('articleContent').innerHTML = `
                     ${a.image_url ? `<img src="${a.image_url}" class="cover-img" />` : ''}
                     <p class="tag">${a.tag}</p>
@@ -104,10 +111,41 @@
                     </div>
                     <div class="content">${a.content}</div>
                 `;
-
                 renderComments(a.comments);
+                loadLikes();
             } catch {
                 location.href = 'index.html';
+            }
+        }
+
+        async function loadLikes() {
+            const res = await fetch(`/api/articles/${articleId}/likes`, {
+                headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+            });
+            const data = await res.json();
+            document.getElementById('likeCount').textContent = `${data.count} suka`;
+            const btn = document.getElementById('likeBtn');
+            if (data.liked) {
+                btn.classList.add('liked');
+                document.getElementById('likeBtnText').textContent = 'Disukai';
+            }
+        }
+
+        async function toggleLike() {
+            if (!token) { location.href = 'login.html'; return; }
+            const res = await fetch(`/api/articles/${articleId}/like`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            document.getElementById('likeCount').textContent = `${data.count} suka`;
+            const btn = document.getElementById('likeBtn');
+            if (data.liked) {
+                btn.classList.add('liked');
+                document.getElementById('likeBtnText').textContent = 'Disukai';
+            } else {
+                btn.classList.remove('liked');
+                document.getElementById('likeBtnText').textContent = 'Suka';
             }
         }
 
@@ -115,15 +153,15 @@
             document.getElementById('commentCount').textContent = comments.length;
             const list = document.getElementById('commentList');
             if (comments.length === 0) {
-                 list.innerHTML = '<p class="empty-comment">Belum ada komentar. Jadilah yang pertama!</p>';
+                list.innerHTML = '<p class="empty-comment">Belum ada komentar. Jadilah yang pertama!</p>';
                 return;
             }
             list.innerHTML = comments.map(c => `
                 <div class="comment-card">
-                <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
-                ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
-                ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-top:10px;" />` : ''}
-            </div>
+                    <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                    ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
+                    ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-top:10px;" />` : ''}
+                </div>
             `).join('');
         }
 
@@ -132,21 +170,17 @@
             const imageFile = document.getElementById('commentImage').files[0];
             const errorMsg = document.getElementById('errorMsg');
             const successMsg = document.getElementById('successMsg');
-    
             errorMsg.style.display = 'none';
             successMsg.style.display = 'none';
-
             if (!text && !imageFile) {
                 errorMsg.textContent = 'Komentar tidak boleh kosong!';
                 errorMsg.style.display = 'block';
                 return;
             }
-
             try {
                 const formData = new FormData();
                 formData.append('text', text);
                 if (imageFile) formData.append('image', imageFile);
-
                 const res = await fetch(`/api/articles/${articleId}/comments`, {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token },
