@@ -153,4 +153,97 @@
                 <tr>
                     <td>👤 ${u.username}</td>
                     <td><span class="badge ${u.username === currentUser ? 'badge-admin' : 'badge-user'}">${u.username === currentUser ? 'Admin' : 'User'}</span></td>
-                    <td>${new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'l
+                    <td>${new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+                    <td>${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUser(${u.id}, '${u.username}')">🗑 Hapus</button>` : '<span style="color:#333">—</span>'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUsers(query) {
+            const filtered = allUsers.filter(u => u.username.toLowerCase().includes(query.toLowerCase()));
+            renderUsers(filtered);
+        }
+
+        async function loadArticles() {
+            try {
+                const res = await fetch('/api/admin/articles', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                allArticles = await res.json();
+                document.getElementById('totalArticles').textContent = allArticles.length;
+                renderArticles(allArticles);
+            } catch {}
+        }
+
+        function renderArticles(articles) {
+            const body = document.getElementById('articlesBody');
+            if (articles.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="empty-state">Tidak ada artikel.</td></tr>';
+                return;
+            }
+            body.innerHTML = articles.map(a => `
+                <tr>
+                    <td>${a.title}</td>
+                    <td>✍️ ${a.author}</td>
+                    <td>${a.date}</td>
+                    <td><button class="delete-btn" onclick="deleteArticle(${a.id})">🗑 Hapus</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterArticles(query) {
+            const filtered = allArticles.filter(a => 
+                a.title.toLowerCase().includes(query.toLowerCase()) || 
+                a.author.toLowerCase().includes(query.toLowerCase())
+            );
+            renderArticles(filtered);
+        }
+
+        async function deleteUser(id, username) {
+            if (!confirm(`Yakin mau hapus user "${username}"? Semua artikel dan komentarnya juga akan dihapus!`)) return;
+            try {
+                const res = await fetch(`/api/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                const data = await res.json();
+                const successMsg = document.getElementById('successMsg');
+                const errorMsg = document.getElementById('errorMsg');
+                if (res.ok) {
+                    successMsg.textContent = `User "${username}" berhasil dihapus!`;
+                    successMsg.style.display = 'block';
+                    errorMsg.style.display = 'none';
+                    setTimeout(() => successMsg.style.display = 'none', 3000);
+                    loadUsers();
+                    loadArticles();
+                } else {
+                    errorMsg.textContent = data.message;
+                    errorMsg.style.display = 'block';
+                }
+            } catch {
+                document.getElementById('errorMsg').textContent = 'Gagal menghapus user.';
+                document.getElementById('errorMsg').style.display = 'block';
+            }
+        }
+
+        async function deleteArticle(id) {
+            if (!confirm('Yakin mau hapus artikel ini?')) return;
+            try {
+                const res = await fetch(`/api/articles/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.ok) {
+                    document.getElementById('successMsg').textContent = 'Artikel berhasil dihapus!';
+                    document.getElementById('successMsg').style.display = 'block';
+                    setTimeout(() => document.getElementById('successMsg').style.display = 'none', 3000);
+                    loadArticles();
+                }
+            } catch {}
+        }
+
+        loadUsers();
+        loadArticles();
+    </script>
+</body>
+</html>
