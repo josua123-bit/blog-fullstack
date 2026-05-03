@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 22px; font-weight: 700; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        h1 { font-size: 28px; color: #fff; margin-bottom: 8px; }
+        .subtitle { color: #555; font-size: 14px; margin-bottom: 40px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 30px; }
+        .tab { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-size: 14px; color: #aaa; transition: all 0.2s; }
+        .tab.active { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+        .tab:hover:not(.active) { border-color: #444; color: #fff; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+        .stat-card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 20px; }
+        .stat-card .number { font-size: 32px; color: #fff; font-weight: 700; margin-bottom: 4px; }
+        .stat-card .label { font-size: 13px; color: #555; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px 16px; font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1e1e1e; }
+        td { padding: 16px; border-bottom: 1px solid #1a1a1a; font-size: 14px; color: #aaa; }
+        tr:hover td { background: #111; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+        .badge-admin { background: #1a1a2e; color: #7c83fd; border: 1px solid #7c83fd33; }
+        .badge-user { background: #161616; color: #555; border: 1px solid #222; }
+        .delete-btn { background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b33; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .delete-btn:hover { background: #ff6b6b; color: #000; }
+        .empty-state { text-align: center; color: #444; padding: 60px 0; font-size: 15px; }
+        .search-bar { width: 100%; background: #161616; border: 1px solid #222; border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 14px; outline: none; margin-bottom: 20px; transition: border 0.2s; }
+        .search-bar:focus { border-color: #444; }
+        .success { color: #6bffb8; font-size: 13px; margin-bottom: 16px; display: none; }
+        .error { color: #ff6b6b; font-size: 13px; margin-bottom: 16px; display: none; }
+        footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">for heal</a>
+        <a href="index.html">← Kembali</a>
+    </nav>
+
+    <div class="container">
+        <h1>Admin Panel</h1>
+        <p class="subtitle">Kelola semua user dan konten blog.</p>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number" id="totalUsers">0</div>
+                <div class="label">Total User</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalArticles">0</div>
+                <div class="label">Total Artikel</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="totalComments">-</div>
+                <div class="label">Total Komentar</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('users')">👥 Users</div>
+            <div class="tab" onclick="switchTab('articles')">📝 Artikel</div>
+        </div>
+
+        <p class="success" id="successMsg"></p>
+        <p class="error" id="errorMsg"></p>
+
+        <!-- USERS TAB -->
+        <div class="section active" id="usersSection">
+            <input type="text" class="search-bar" placeholder="Cari username..." oninput="filterUsers(this.value)" />
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Bergabung</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="usersBody">
+                    <tr><td colspan="4" class="empty-state">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ARTICLES TAB -->
+        <div class="section" id="articlesSection">
+            <input type="text" class="search-bar" placeholder="Cari artikel..." oninput="filterArticles(this.value)" />
+            <table id="articlesTable">
+                <thead>
+                    <tr>
+                        <th>Judul</th>
+                        <th>Penulis</th>
+                        <th>Tanggal</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="articlesBody">
+                    <tr><td colspan="4" class="empty-state">Memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer><p>made with my hand</p></footer>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const currentUser = localStorage.getItem('username');
+        if (!token) location.href = 'login.html';
+
+        let allUsers = [];
+        let allArticles = [];
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Section').classList.add('active');
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/admin/users', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!res.ok) { location.href = 'index.html'; return; }
+                allUsers = await res.json();
+                document.getElementById('totalUsers').textContent = allUsers.length;
+                renderUsers(allUsers);
+            } catch {
+                location.href = 'index.html';
+            }
+        }
+
+        function renderUsers(users) {
+            const body = document.getElementById('usersBody');
+            if (users.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="empty-state">Tidak ada user.</td></tr>';
+                return;
+            }
+            body.innerHTML = users.map(u => `
+                <tr>
+                    <td>👤 ${u.username}</td>
+                    <td><span class="badge ${u.username === currentUser ? 'badge-admin' : 'badge-user'}">${u.username === currentUser ? 'Admin' : 'User'}</span></td>
+                    <td>${new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'l

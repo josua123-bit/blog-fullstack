@@ -190,6 +190,45 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
     res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
 });
 
+// =================== ADMIN ===================
+
+// Middleware cek admin
+function adminMiddleware(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Token tidak ada' });
+    try {
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        if (user.username !== process.env.ADMIN) return res.status(403).json({ message: 'Bukan admin' });
+        req.user = user;
+        next();
+    } catch {
+        res.status(401).json({ message: 'Token tidak valid' });
+    }
+}
+
+// Ambil semua user
+app.get('/api/admin/users', adminMiddleware, async (req, res) => {
+    const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
+    res.json(users.rows);
+});
+
+// Hapus user
+app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
+    const user = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
+    if (user.rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
+    if (user.rows[0].username === process.env.ADMIN) return res.status(403).json({ message: 'Tidak bisa hapus admin' });
+    await pool.query('DELETE FROM comments WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM articles WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.json({ message: 'User berhasil dihapus!' });
+});
+
+// Ambil semua artikel (admin)
+app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
+    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    res.json(articles.rows);
+});
+
 // =================== START ===================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
