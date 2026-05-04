@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const multer = require('multer');
+const fs = require('fs');
 const { Pool } = require('pg');
 const cloudinary = require('cloudinary').v2;
 
@@ -20,16 +21,33 @@ const pool = new Pool({
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// ================= UPLOAD =================
+const storage = multer.memoryStorage();
 const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // naikkan biar audio aman
     fileFilter: (req, file, cb) => {
-        const allowed = [
-            'image/jpeg','image/png','image/webp','image/gif',
-            'audio/mpeg','audio/wav','audio/ogg','audio/webm'
+        const allowedTypes = [
+            // image
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+
+            // audio
+            'audio/mpeg',
+            'audio/wav',
+            'audio/ogg',
+            'audio/webm'
         ];
-        cb(null, allowed.includes(file.mimetype));
+
+        console.log('UPLOAD TYPE:', file.mimetype); // debug
+
+        if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Hanya gambar & audio yang diperbolehkan!'), false);
+        }
     }
 });
 
@@ -37,290 +55,381 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ================= DB =================
 async function setupDB() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE,
-            password TEXT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS articles (
             id SERIAL PRIMARY KEY,
-            title TEXT,
-            tag TEXT,
-            content TEXT,
-            author TEXT,
-            date TEXT,
+            title TEXT NOT NULL,
+            tag TEXT NOT NULL,
+            content TEXT NOT NULL,
+            author TEXT NOT NULL,
+            date TEXT NOT NULL,
             image_url TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            deleted_at TIMESTAMP,
-            deleted_by TEXT
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS comments (
             id SERIAL PRIMARY KEY,
-            article_id INT,
-            author TEXT,
+            article_id INTEGER NOT NULL,
+            author TEXT NOT NULL,
             text TEXT,
             image_url TEXT,
-            date TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            deleted_at TIMESTAMP,
-            deleted_by TEXT
+            date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS likes (
             id SERIAL PRIMARY KEY,
-            article_id INT,
-            username TEXT,
+            article_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(article_id, username)
         );
-
         CREATE TABLE IF NOT EXISTS til (
             id SERIAL PRIMARY KEY,
-            username TEXT,
-            content TEXT,
-            date TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            deleted_at TIMESTAMP,
-            deleted_by TEXT
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS quotes (
             id SERIAL PRIMARY KEY,
-            username TEXT,
-            content TEXT,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
             author TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            deleted_at TIMESTAMP,
-            deleted_by TEXT
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS voice_notes (
             id SERIAL PRIMARY KEY,
-            username TEXT,
-            title TEXT,
-            url TEXT,
-            date TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            deleted_at TIMESTAMP,
-            deleted_by TEXT
+            username TEXT NOT NULL,
+            title TEXT NOT NULL,
+            url TEXT NOT NULL,
+            date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `);
 
-    console.log("DB siap");
+    // Migration soft delete
+    try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_by TEXT`); } catch {}
+
+    console.log('Database siap!');
 }
+
 setupDB();
 
-
-// ================= AUTH =================
+// =================== AUTH ===================
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
-
-    const exist = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
-    if (exist.rows.length) return res.status(400).json({ message: 'Username sudah ada' });
-
-    const hash = await bcrypt.hash(password, 10);
-    await pool.query('INSERT INTO users(username,password) VALUES($1,$2)', [username, hash]);
-
-    res.json({ message: 'Register berhasil' });
+    if (!username || !password) return res.status(400).json({ message: 'Username dan password wajib diisi' });
+    const existing = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    if (existing.rows.length > 0) return res.status(400).json({ message: 'Username sudah dipakai' });
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query('INSERT INTO users (username, password) VALUES ($1, $2)', [username, hashed]);
+    res.json({ message: 'Registrasi berhasil!' });
 });
 
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-
-    const user = (await pool.query('SELECT * FROM users WHERE username=$1',[username])).rows[0];
-    if (!user) return res.status(400).json({ message: 'User tidak ada' });
-
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = result.rows[0];
+    if (!user) return res.status(400).json({ message: 'User tidak ditemukan' });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ message: 'Password salah' });
-
-    const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn:'7d' });
+    const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username });
 });
 
-function auth(req,res,next){
-    const token = req.headers.authorization?.split(' ')[1];
-    if(!token) return res.status(401).json({message:'No token'});
-    try{
+// =================== MIDDLEWARE ===================
+function authMiddleware(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Token tidak ada' });
+    try {
         req.user = jwt.verify(token, process.env.JWT_SECRET);
         next();
-    }catch{
-        res.status(401).json({message:'Invalid token'});
+    } catch {
+        res.status(401).json({ message: 'Token tidak valid' });
     }
 }
 
-function admin(req,res,next){
-    const token = req.headers.authorization?.split(' ')[1];
-    if(!token) return res.status(401).json({message:'No token'});
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    if(user.username !== process.env.ADMIN) return res.status(403).json({message:'Not admin'});
-    req.user = user;
-    next();
+function adminMiddleware(req, res, next) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Token tidak ada' });
+    try {
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        if (user.username !== process.env.ADMIN) return res.status(403).json({ message: 'Bukan admin' });
+        req.user = user;
+        next();
+    } catch {
+        res.status(401).json({ message: 'Token tidak valid' });
+    }
 }
 
-
-// ================= UPLOAD =================
-app.post('/api/upload', auth, upload.single('file'), async (req,res)=>{
-    if(!req.file) return res.status(400).json({message:'No file'});
-
-    const result = await new Promise((resolve,reject)=>{
-        cloudinary.uploader.upload_stream(
-            {resource_type:'auto'},
-            (err,result)=> err ? reject(err) : resolve(result)
-        ).end(req.file.buffer);
-    });
-
-    res.json({url: result.secure_url});
+// =================== UPLOAD ===================
+app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: 'Tidak ada file yang diupload' });
+    try {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog', resource_type: 'auto' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.file.buffer);
+        });
+        res.json({ url: result.secure_url });
+    } catch {
+        res.status(500).json({ message: 'Gagal upload gambar' });
+    }
 });
 
-
-// ================= ARTICLES =================
-app.get('/api/articles', async (req,res)=>{
-    const data = await pool.query(`
-        SELECT * FROM articles 
-        WHERE deleted_at IS NULL 
-        ORDER BY created_at DESC
-    `);
-    res.json(data.rows);
+// =================== ARTIKEL ===================
+app.get('/api/articles', async (req, res) => {
+    const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const result = await Promise.all(articles.rows.map(async a => {
+        const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [a.id]);
+        const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [a.id]);
+        return { ...a, comments: comments.rows, likes: parseInt(likes.rows[0].count) };
+    }));
+    res.json(result);
 });
 
-app.post('/api/articles', auth, async (req,res)=>{
-    const {title,tag,content,imageUrl} = req.body;
-    const date = new Date().toLocaleDateString('id-ID');
-
+app.post('/api/articles', authMiddleware, async (req, res) => {
+    const { title, tag, content, imageUrl } = req.body;
+    if (!title || !content) return res.status(400).json({ message: 'Judul dan isi wajib diisi' });
+    const date = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
     const result = await pool.query(
-        `INSERT INTO articles(title,tag,content,author,date,image_url)
-         VALUES($1,$2,$3,$4,$5,$6) RETURNING *`,
-        [title,tag,content,req.user.username,date,imageUrl]
+        'INSERT INTO articles (title, tag, content, author, date, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [title, tag, content, req.user.username, date, imageUrl || null]
     );
-
-    res.json(result.rows[0]);
+    res.json({ message: 'Artikel berhasil dibuat!', article: result.rows[0] });
 });
 
-// SOFT DELETE
-app.delete('/api/articles/:id', auth, async (req,res)=>{
-    const data = await pool.query('SELECT * FROM articles WHERE id=$1',[req.params.id]);
-    if(!data.rows.length) return res.status(404).json({message:'Not found'});
+app.get('/api/articles/:id', async (req, res) => {
+    const article = await pool.query('SELECT * FROM articles WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
+    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [req.params.id]);
+    const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [req.params.id]);
+    res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
+});
 
+app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
+    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.id]);
+    if (quote.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     const isAdmin = req.user.username === process.env.ADMIN;
+    if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
+});
 
-    if(data.rows[0].author !== req.user.username && !isAdmin){
-        return res.status(403).json({message:'No access'});
+// =================== LIKES ===================
+app.post('/api/articles/:id/like', authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const username = req.user.username;
+    const existing = await pool.query('SELECT * FROM likes WHERE article_id = $1 AND username = $2', [id, username]);
+    if (existing.rows.length > 0) {
+        await pool.query('DELETE FROM likes WHERE article_id = $1 AND username = $2', [id, username]);
+        const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+        return res.json({ liked: false, count: parseInt(count.rows[0].count) });
     }
-
-    await pool.query(
-        `UPDATE articles SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
-        [req.user.username, req.params.id]
-    );
-
-    res.json({message:'Artikel dihapus (soft delete)'});
+    await pool.query('INSERT INTO likes (article_id, username) VALUES ($1, $2)', [id, username]);
+    const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+    res.json({ liked: true, count: parseInt(count.rows[0].count) });
 });
 
-
-// ================= COMMENTS =================
-app.get('/api/articles/:id/comments', async (req,res)=>{
-    const data = await pool.query(`
-        SELECT * FROM comments 
-        WHERE article_id=$1 AND deleted_at IS NULL
-        ORDER BY created_at DESC
-    `,[req.params.id]);
-
-    res.json(data.rows);
+app.get('/api/articles/:id/likes', async (req, res) => {
+    const { id } = req.params;
+    const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+    const token = req.headers['authorization']?.split(' ')[1];
+    let liked = false;
+    if (token) {
+        try {
+            const user = jwt.verify(token, process.env.JWT_SECRET);
+            const existing = await pool.query('SELECT * FROM likes WHERE article_id = $1 AND username = $2', [id, user.username]);
+            liked = existing.rows.length > 0;
+        } catch {}
+    }
+    res.json({ count: parseInt(count.rows[0].count), liked });
 });
 
-app.post('/api/articles/:id/comments', auth, async (req,res)=>{
-    const {text,imageUrl} = req.body;
+// =================== KOMENTAR ===================
+app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), async (req, res) => {
+    const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
+    if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const date = new Date().toLocaleDateString('id-ID');
-
+    let imageUrl = null;
+    if (req.file) {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.file.buffer);
+        });
+        imageUrl = result.secure_url;
+    }
+    const text = req.body.text || '';
+    if (!text && !imageUrl) return res.status(400).json({ message: 'Komentar tidak boleh kosong!' });
     await pool.query(
-        `INSERT INTO comments(article_id,author,text,image_url,date)
-         VALUES($1,$2,$3,$4,$5)`,
+        'INSERT INTO comments (article_id, author, text, image_url, date) VALUES ($1, $2, $3, $4, $5)',
         [req.params.id, req.user.username, text, imageUrl, date]
     );
-
-    res.json({message:'Komentar masuk'});
+    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [req.params.id]);
+    res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
 });
 
-
-// ================= TIL =================
-app.get('/api/til', auth, async (req,res)=>{
-    const data = await pool.query(`
-        SELECT * FROM til 
-        WHERE username=$1 AND deleted_at IS NULL
-        ORDER BY created_at DESC
-    `,[req.user.username]);
-
-    res.json(data.rows);
+// =================== ADMIN ===================
+app.get('/api/admin/users', adminMiddleware, async (req, res) => {
+    const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
+    res.json(users.rows);
 });
 
-app.delete('/api/til/:id', auth, async (req,res)=>{
-    await pool.query(
-        `UPDATE til SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
-        [req.user.username, req.params.id]
+app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
+    const user = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
+    if (user.rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
+    if (user.rows[0].username === process.env.ADMIN) return res.status(403).json({ message: 'Tidak bisa hapus admin' });
+    await pool.query('DELETE FROM comments WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM likes WHERE username = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM articles WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.json({ message: 'User berhasil dihapus!' });
+});
+
+app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
+    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    res.json(articles.rows);
+});
+
+// =================== TODAY I LEARNED ===================
+app.get('/api/til', authMiddleware, async (req, res) => {
+    const result = await pool.query('SELECT * FROM til WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.user.username]);
+    res.json(result.rows);
+});
+
+app.post('/api/til', authMiddleware, async (req, res) => {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ message: 'Isi tidak boleh kosong' });
+    const date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const result = await pool.query(
+        'INSERT INTO til (username, content, date) VALUES ($1, $2, $3) RETURNING *',
+        [req.user.username, content, date]
     );
-    res.json({message:'TIL dihapus'});
+    res.json({ message: 'TIL ditambahkan!', til: result.rows[0] });
 });
 
-
-// ================= QUOTES =================
-app.get('/api/quotes', async (req,res)=>{
-    const data = await pool.query(`
-        SELECT * FROM quotes 
-        WHERE deleted_at IS NULL
-        ORDER BY created_at DESC
-    `);
-    res.json(data.rows);
+app.delete('/api/til/:id', authMiddleware, async (req, res) => {
+    const til = await pool.query('SELECT * FROM til WHERE id = $1', [req.params.id]);
+    if (til.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+    if (til.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('UPDATE til SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
 });
 
-app.delete('/api/quotes/:id', auth, async (req,res)=>{
-    await pool.query(
-        `UPDATE quotes SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
-        [req.user.username, req.params.id]
+// =================== QUOTES ===================
+app.get('/api/quotes', async (req, res) => {
+    const result = await pool.query('SELECT * FROM quotes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 20');
+    res.json(result.rows);
+});
+
+app.post('/api/quotes', authMiddleware, async (req, res) => {
+    const { content, author } = req.body;
+    if (!content) return res.status(400).json({ message: 'Quote tidak boleh kosong' });
+    const result = await pool.query(
+        'INSERT INTO quotes (username, content, author) VALUES ($1, $2, $3) RETURNING *',
+        [req.user.username, content, author || null]
     );
-    res.json({message:'Quote dihapus'});
+    res.json({ message: 'Quote ditambahkan!', quote: result.rows[0] });
 });
 
-
-// ================= VOICE =================
-app.get('/api/voicenotes', auth, async (req,res)=>{
-    const data = await pool.query(`
-        SELECT * FROM voice_notes 
-        WHERE username=$1 AND deleted_at IS NULL
-        ORDER BY created_at DESC
-    `,[req.user.username]);
-
-    res.json(data.rows);
+app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
+    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.id]);
+    if (quote.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
 });
 
-app.delete('/api/voicenotes/:id', auth, async (req,res)=>{
-    await pool.query(
-        `UPDATE voice_notes SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
-        [req.user.username, req.params.id]
+// =================== VOICE NOTES ===================
+app.get('/api/voicenotes', authMiddleware, async (req, res) => {
+    const result = await pool.query('SELECT * FROM voice_notes WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.user.username]);
+    res.json(result.rows);
+});
+
+app.post('/api/voicenotes', authMiddleware, async (req, res) => {
+    const { title, url } = req.body;
+    if (!url) return res.status(400).json({ message: 'URL tidak boleh kosong' });
+    const date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const result = await pool.query(
+        'INSERT INTO voice_notes (username, title, url, date) VALUES ($1, $2, $3, $4) RETURNING *',
+        [req.user.username, title || 'Voice Note', url, date]
     );
-    res.json({message:'VN dihapus'});
+    res.json({ message: 'Voice note disimpan!', voiceNote: result.rows[0] });
 });
 
+app.delete('/api/voicenotes/:id', authMiddleware, async (req, res) => {
+    const vn = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [req.params.id]);
+    if (vn.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+    if (vn.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('UPDATE voice_notes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
+});
 
-// ================= ADMIN =================
-app.get('/api/admin/all', admin, async (req,res)=>{
+// Admin - lihat semua aktivitas
+app.get('/api/admin/all', adminMiddleware, async (req, res) => {
+    const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
+    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    const comments = await pool.query('SELECT * FROM comments WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const quotes = await pool.query('SELECT * FROM quotes ORDER BY created_at DESC');
+    const til = await pool.query('SELECT * FROM til ORDER BY created_at DESC');
+    const voiceNotes = await pool.query('SELECT * FROM voice_notes ORDER BY created_at DESC');
     const deleted = await pool.query(`
-        SELECT 'artikel' type, title content, author username, deleted_at FROM articles WHERE deleted_at IS NOT NULL
+        SELECT 'artikel' as type, title as content, author as username, deleted_at, deleted_by FROM articles WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'quote', content, username, deleted_at FROM quotes WHERE deleted_at IS NOT NULL
+        SELECT 'quote' as type, content, username, deleted_at, deleted_by FROM quotes WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'til', content, username, deleted_at FROM til WHERE deleted_at IS NOT NULL
+        SELECT 'til' as type, content, username, deleted_at, deleted_by FROM til WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'vn', title, username, deleted_at FROM voice_notes WHERE deleted_at IS NOT NULL
+        SELECT 'voicenote' as type, title as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
         ORDER BY deleted_at DESC
     `);
-
-    res.json({deleted: deleted.rows});
+    res.json({
+        users: users.rows,
+        articles: articles.rows,
+        comments: comments.rows,
+        quotes: quotes.rows,
+        til: til.rows,
+        voiceNotes: voiceNotes.rows,
+        deleted: deleted.rows
+    });
 });
 
+app.delete('/api/admin/quotes/:id', adminMiddleware, async (req, res) => {
+    await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Quote dihapus!' });
+});
 
+app.delete('/api/admin/til/:id', adminMiddleware, async (req, res) => {
+    await pool.query('DELETE FROM til WHERE id = $1', [req.params.id]);
+    res.json({ message: 'TIL dihapus!' });
+});
+
+app.delete('/api/admin/voicenotes/:id', adminMiddleware, async (req, res) => {
+    await pool.query('DELETE FROM voice_notes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Voice note dihapus!' });
+});
+
+// =================== START ===================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=>console.log('Server jalan di port', PORT));
+app.listen(PORT, () => {
+    console.log(`Server jalan di http://localhost:${PORT}`);
+});
