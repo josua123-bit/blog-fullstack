@@ -146,7 +146,7 @@ app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res)
     if (!req.file) return res.status(400).json({ message: 'Tidak ada file yang diupload' });
     try {
         const result = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload_stream({ folder: 'blog' }, (error, result) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog', resource_type: 'auto' }, (error, result) => {
                 if (error) reject(error);
                 else resolve(result);
             }).end(req.file.buffer);
