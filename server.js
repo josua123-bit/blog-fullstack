@@ -20,6 +20,7 @@ const pool = new Pool({
     ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
+// ================= UPLOAD =================
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 },
@@ -36,6 +37,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ================= DB =================
 async function setupDB() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -108,14 +110,16 @@ async function setupDB() {
             deleted_by TEXT
         );
     `);
-}
 
+    console.log("DB siap");
+}
 setupDB();
 
 
 // ================= AUTH =================
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
+
     const exist = await pool.query('SELECT * FROM users WHERE username=$1', [username]);
     if (exist.rows.length) return res.status(400).json({ message: 'Username sudah ada' });
 
@@ -127,6 +131,7 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
+
     const user = (await pool.query('SELECT * FROM users WHERE username=$1',[username])).rows[0];
     if (!user) return res.status(400).json({ message: 'User tidak ada' });
 
@@ -150,6 +155,7 @@ function auth(req,res,next){
 
 function admin(req,res,next){
     const token = req.headers.authorization?.split(' ')[1];
+    if(!token) return res.status(401).json({message:'No token'});
     const user = jwt.verify(token, process.env.JWT_SECRET);
     if(user.username !== process.env.ADMIN) return res.status(403).json({message:'Not admin'});
     req.user = user;
@@ -174,7 +180,11 @@ app.post('/api/upload', auth, upload.single('file'), async (req,res)=>{
 
 // ================= ARTICLES =================
 app.get('/api/articles', async (req,res)=>{
-    const data = await pool.query(`SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC`);
+    const data = await pool.query(`
+        SELECT * FROM articles 
+        WHERE deleted_at IS NULL 
+        ORDER BY created_at DESC
+    `);
     res.json(data.rows);
 });
 
@@ -191,7 +201,7 @@ app.post('/api/articles', auth, async (req,res)=>{
     res.json(result.rows[0]);
 });
 
-/* 🔥 FIX UTAMA ADA DI SINI */
+// SOFT DELETE
 app.delete('/api/articles/:id', auth, async (req,res)=>{
     const data = await pool.query('SELECT * FROM articles WHERE id=$1',[req.params.id]);
     if(!data.rows.length) return res.status(404).json({message:'Not found'});
@@ -207,11 +217,21 @@ app.delete('/api/articles/:id', auth, async (req,res)=>{
         [req.user.username, req.params.id]
     );
 
-    res.json({message:'Artikel dihapus'});
+    res.json({message:'Artikel dihapus (soft delete)'});
 });
 
 
 // ================= COMMENTS =================
+app.get('/api/articles/:id/comments', async (req,res)=>{
+    const data = await pool.query(`
+        SELECT * FROM comments 
+        WHERE article_id=$1 AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    `,[req.params.id]);
+
+    res.json(data.rows);
+});
+
 app.post('/api/articles/:id/comments', auth, async (req,res)=>{
     const {text,imageUrl} = req.body;
     const date = new Date().toLocaleDateString('id-ID');
@@ -227,6 +247,16 @@ app.post('/api/articles/:id/comments', auth, async (req,res)=>{
 
 
 // ================= TIL =================
+app.get('/api/til', auth, async (req,res)=>{
+    const data = await pool.query(`
+        SELECT * FROM til 
+        WHERE username=$1 AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    `,[req.user.username]);
+
+    res.json(data.rows);
+});
+
 app.delete('/api/til/:id', auth, async (req,res)=>{
     await pool.query(
         `UPDATE til SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
@@ -237,6 +267,15 @@ app.delete('/api/til/:id', auth, async (req,res)=>{
 
 
 // ================= QUOTES =================
+app.get('/api/quotes', async (req,res)=>{
+    const data = await pool.query(`
+        SELECT * FROM quotes 
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC
+    `);
+    res.json(data.rows);
+});
+
 app.delete('/api/quotes/:id', auth, async (req,res)=>{
     await pool.query(
         `UPDATE quotes SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
@@ -247,6 +286,16 @@ app.delete('/api/quotes/:id', auth, async (req,res)=>{
 
 
 // ================= VOICE =================
+app.get('/api/voicenotes', auth, async (req,res)=>{
+    const data = await pool.query(`
+        SELECT * FROM voice_notes 
+        WHERE username=$1 AND deleted_at IS NULL
+        ORDER BY created_at DESC
+    `,[req.user.username]);
+
+    res.json(data.rows);
+});
+
 app.delete('/api/voicenotes/:id', auth, async (req,res)=>{
     await pool.query(
         `UPDATE voice_notes SET deleted_at=NOW(), deleted_by=$1 WHERE id=$2`,
@@ -274,4 +323,4 @@ app.get('/api/admin/all', admin, async (req,res)=>{
 
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=>console.log('Server jalan di port '));
+app.listen(PORT, ()=>console.log('Server jalan di port', PORT));

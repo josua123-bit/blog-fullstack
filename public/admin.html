@@ -65,9 +65,26 @@
             <div class="tab" onclick="switchTab('quotes', this)">✨ Quotes</div>
             <div class="tab" onclick="switchTab('til', this)">📓 TIL</div>
             <div class="tab" onclick="switchTab('voicenotes', this)">🎙️ Voice Notes</div>
+            <div class="tab" onclick="switchTab('trash', this)">🗑️ Sampah</div>
         </div>
 
         <p class="success" id="successMsg"></p>
+
+        <!-- TRASH -->
+<div class="section" id="trashSection">
+    <table>
+        <thead>
+            <tr>
+                <th>Tipe</th>
+                <th>Isi</th>
+                <th>User</th>
+                <th>Dihapus Oleh</th>
+                <th>Dihapus Pada</th>
+            </tr>
+        </thead>
+        <tbody id="trashBody"></tbody>
+    </table>
+</div>
 
         <!-- USERS -->
         <div class="section active" id="usersSection">
@@ -159,8 +176,21 @@
             renderQuotes();
             renderTIL();
             renderVoiceNotes();
+            renderTrash();
         }
 
+        function renderTrash() {
+    document.getElementById('trashBody').innerHTML = allData.deleted.length === 0
+        ? '<tr><td colspan="5" class="empty-state">Tidak ada data yang dihapus.</td></tr>'
+        : allData.deleted.map(d => `
+            <tr>
+                <td><span class="badge-user">${d.type}</span></td>
+                <td title="${d.content}">${d.content?.substring(0, 60)}${d.content?.length > 60 ? '...' : ''}</td>
+                <td>${d.username}</td>
+                <td>${d.deleted_by}</td>
+                <td>${new Date(d.deleted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+            </tr>`).join('');
+        }
         function renderUsers() {
             document.getElementById('usersBody').innerHTML = allData.users.length === 0
                 ? '<tr><td colspan="4" class="empty-state">Tidak ada user.</td></tr>'
