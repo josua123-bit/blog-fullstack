@@ -96,13 +96,12 @@ async function setupDB() {
             date TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-
         CREATE TABLE IF NOT EXISTS quotes (
             id SERIAL PRIMARY KEY,
             username TEXT NOT NULL,
             content TEXT NOT NULL,
             author TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS voice_notes (
             id SERIAL PRIMARY KEY,
@@ -113,20 +112,21 @@ async function setupDB() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     `);
+
+    // Migration soft delete
+    try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_by TEXT`); } catch {}
+
     console.log('Database siap!');
 }
-
-// Migration soft delete
-try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_at TIMESTAMP`); } catch {}
-try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_by TEXT`); } catch {}
-try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
-try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_by TEXT`); } catch {}
-try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_at TIMESTAMP`); } catch {}
-try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_by TEXT`); } catch {}
-try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
-try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_by TEXT`); } catch {}
-try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_at TIMESTAMP`); } catch {}
-try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_by TEXT`); } catch {}
 
 setupDB();
 
