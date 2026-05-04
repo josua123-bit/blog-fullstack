@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Note</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
+        .header { margin-bottom: 40px; }
+        .header h1 { font-size: 32px; color: #fff; font-weight: 600; margin-bottom: 8px; }
+        .header p { color: #555; font-size: 15px; }
+        .recorder { background: #161616; border: 1px solid #222; border-radius: 16px; padding: 40px; text-align: center; margin-bottom: 40px; }
+        .record-btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; font-size: 32px; transition: all 0.3s; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .record-btn.idle { background: #ff6b6b22; border: 2px solid #ff6b6b; color: #ff6b6b; }
+        .record-btn.recording { background: #ff6b6b; border: 2px solid #ff6b6b; color: #fff; animation: pulse 1s infinite; }
+        .record-status { font-size: 14px; color: #555; margin-bottom: 16px; }
+        .record-status.active { color: #ff6b6b; }
+        .timer { font-size: 28px; color: #fff; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; display: none; }
+        .timer.active { display: block; }
+        .title-input { width: 100%; background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; margin-bottom: 16px; }
+        .title-input::placeholder { color: #444; }
+        .save-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; display: none; }
+        .save-btn:hover { opacity: 0.85; }
+        .save-btn.show { display: inline-block; }
+        .audio-preview { width: 100%; margin: 16px 0; display: none; }
+        .audio-preview.show { display: block; }
+        .notes-list { display: flex; flex-direction: column; gap: 12px; }
+        .note-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 20px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; }
+        .note-card:hover { border-color: #333; }
+        .note-title { font-size: 15px; color: #fff; font-weight: 500; margin-bottom: 8px; }
+        .note-date { font-size: 12px; color: #444; margin-bottom: 12px; }
+        .note-audio { width: 100%; }
+        .note-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+        .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
+        .del-btn:hover { color: #ff6b6b; }
+        .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
+        footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">for heal</a>
+        <a href="index.html">← Kembali</a>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Voice Note</h1>
+            <p>Rekam suaramu, simpan momennya.</p>
+        </div>
+
+        <div class="recorder">
+            <button class="record-btn idle" id="recordBtn" onclick="toggleRecord()">🎙️</button>
+            <p class="record-status" id="recordStatus">Tekan untuk mulai rekam</p>
+            <div class="timer" id="timer">00:00</div>
+            <audio class="audio-preview" id="audioPreview" controls></audio>
+            <input type="text" class="title-input" id="noteTitle" placeholder="Judul voice note (opsional)" />
+            <button class="save-btn" id="saveBtn" onclick="saveVoiceNote()">💾 Simpan</button>
+        </div>
+
+        <div class="notes-list" id="notesList">
+            <p class="empty">Belum ada voice note.</p>
+        </div>
+    </div>
+
+    <footer><p>made with my hand</p></footer>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) location.href = 'login.html';
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let timerInterval = null;
+        let seconds = 0;
+        let audioBlob = null;
+
+        function updateTimer() {
+            seconds++;
+            const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+            const s = String(seconds % 60).padStart(2, '0');
+            document.getElementById('timer').textContent = `${m}:${s}`;
+        }
+
+        async function toggleRecord() {
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('recordStatus');
+            const timer = document.getElementById('timer');
+
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const url = URL.createObjectURL(audioBlob);
+                        const preview = document.getElementById('audioPreview');
+                        preview.src = url;
+                        preview.classList.add('show');
+                        document.getElementById('saveBtn').classList.add('show');
+                        stream.getTracks().forEach(t => t.stop());
+                    };
+
+                    mediaRecorder.start();
+                    btn.className = 'record-btn recording';
+                    btn.textContent = '⏹️';
+                    status.textContent = 'Sedang merekam...';
+                    status.className = 'record-status active';
+                    timer.classList.add('active');
+                    seconds = 0;
+                    timerInterval = setInterval(updateTimer, 1000);
+                } catch {
+                    status.textContent = 'Izin mikrofon ditolak!';
+                }
+            } else {
+                mediaRecorder.stop();
+                clearInterval(timerInterval);
+                btn.className = 'record-btn idle';
+                btn.textContent = '🎙️';
+                status.textContent = 'Rekaman selesai! Simpan atau rekam ulang.';
+                status.className = 'record-status';
+                timer.classList.remove('active');
+            }
+        }
+
+        async function saveVoiceNote() {
+            if (!audioBlob) return;
+            const title = document.getElementById('noteTitle').value.trim() || 'Voice Note';
+            const date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            // Upload ke Cloudinary
+            const formData = new FormData();
+            formData.append('image', audioBlob, 'voice.webm');
+
+            try {
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                const uploadData = await uploadRes.json();
+
+                // Simpan ke localStorage (voice note pribadi)
+                const notes = JSON.parse(localStorage.getItem('voiceNotes') || '[]');
+                notes.unshift({ id: Date.now(), title, date, url: uploadData.url });
+                localStorage.setItem('voiceNotes', JSON.stringify(notes));
+
+                document.getElementById('noteTitle').value = '';
+                document.getElementById('audioPreview').classList.remove('show');
+                document.getElementById('saveBtn').classList.remove('show');
+                audioBlob = null;
+                loadNotes();
+            } catch {
+                alert('Gagal menyimpan voice note.');
+            }
+        }
+
+        function loadNotes() {
+            const notes = JSON.parse(localStorage.getItem('voiceNotes') || '[]');
+            const list = document.getElementById('notesList');
+            if (notes.length === 0) {
+                list.innerHTML = '<p class="empty">Belum ada voice note.</p>';
+                return;
+            }
+            list.innerHTML = notes.map(n => `
+                <div class="note-card">
+                    <p class="note-title">🎙️ ${n.title}</p>
+                    <p class="note-date">📅 ${n.date}</p>
+                    <audio class="note-audio" controls src="${n.url}"></audio>
+                    <div class="note-actions">
+                        <button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function deleteNote(id) {
+            if (!confirm('Hapus voice note ini?')) return;
+            const notes = JSON.parse(localStorage.getItem('voiceNotes') || '[]');
+            localStorage.setItem('voiceNotes', JSON.stringify(notes.filter(n => n.id !== id)));
+            loadNotes();
+        }
+
+        loadNotes();
+    </script>
+</body>
+</html>

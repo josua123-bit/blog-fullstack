@@ -73,6 +73,21 @@ async function setupDB() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(article_id, username)
         );
+        CREATE TABLE IF NOT EXISTS til (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS quotes (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            content TEXT NOT NULL,
+            author TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     `);
     console.log('Database siap!');
 }

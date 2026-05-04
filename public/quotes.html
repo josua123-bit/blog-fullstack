@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quote Highlight</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
+        .header { margin-bottom: 40px; }
+        .header h1 { font-size: 32px; color: #fff; font-weight: 600; margin-bottom: 8px; }
+        .header p { color: #555; font-size: 15px; }
+        .input-box { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 24px; margin-bottom: 40px; }
+        .input-box textarea { width: 100%; background: transparent; border: none; color: #e0e0e0; font-size: 18px; font-family: 'Segoe UI', sans-serif; resize: none; outline: none; min-height: 80px; line-height: 1.7; font-style: italic; }
+        .input-box textarea::placeholder { color: #333; font-style: italic; }
+        .input-box input { width: 100%; background: transparent; border: none; border-top: 1px solid #1e1e1e; color: #666; font-size: 14px; font-family: 'Segoe UI', sans-serif; outline: none; padding-top: 12px; margin-top: 12px; }
+        .input-box input::placeholder { color: #333; }
+        .input-footer { display: flex; justify-content: flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid #1e1e1e; }
+        .submit-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .submit-btn:hover { opacity: 0.85; }
+        .quotes-grid { display: flex; flex-direction: column; gap: 16px; }
+        .quote-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 28px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; position: relative; }
+        .quote-card:hover { border-color: #333; }
+        .quote-mark { font-size: 48px; color: #222; line-height: 1; margin-bottom: 8px; font-family: Georgia, serif; }
+        .quote-content { font-size: 18px; color: #ccc; line-height: 1.7; font-style: italic; margin-bottom: 16px; }
+        .quote-footer { display: flex; justify-content: space-between; align-items: center; }
+        .quote-author { font-size: 13px; color: #555; }
+        .quote-author span { color: #444; margin-right: 8px; }
+        .quote-actions { display: flex; gap: 8px; }
+        .share-btn { background: transparent; color: #555; border: 1px solid #222; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .share-btn:hover { border-color: #6bffb8; color: #6bffb8; }
+        .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
+        .del-btn:hover { color: #ff6b6b; }
+        .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
+        .copied { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #6bffb8; color: #000; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .copied.show { opacity: 1; }
+        footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">for heal</a>
+        <a href="index.html">← Kembali</a>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>💬 Quote Highlight</h1>
+            <p>Share quote yang relate atau bikin semangat.</p>
+        </div>
+
+        <div class="input-box" id="inputBox">
+            <textarea id="quoteInput" placeholder="Tulis quote yang relate sama kamu..."></textarea>
+            <input type="text" id="authorInput" placeholder="— Sumber / nama (opsional)" />
+            <div class="input-footer">
+                <button class="submit-btn" onclick="addQuote()">Share Quote</button>
+            </div>
+        </div>
+
+        <div class="quotes-grid" id="quotesList">
+            <p class="empty">Belum ada quote. Jadilah yang pertama share!</p>
+        </div>
+    </div>
+
+    <div class="copied" id="copiedToast">✓ Quote disalin!</div>
+
+    <footer><p>made with my hand</p></footer>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const currentUser = localStorage.getItem('username');
+
+        if (!token) {
+            document.getElementById('inputBox').style.display = 'none';
+        }
+
+        async function loadQuotes() {
+            const res = await fetch('/api/quotes');
+            const data = await res.json();
+            const list = document.getElementById('quotesList');
+            if (data.length === 0) {
+                list.innerHTML = '<p class="empty">Belum ada quote. Jadilah yang pertama share!</p>';
+                return;
+            }
+            list.innerHTML = data.map(q => `
+                <div class="quote-card">
+                    <div class="quote-mark">"</div>
+                    <p class="quote-content">${q.content}</p>
+                    <div class="quote-footer">
+                        <div class="quote-author">
+                            <span>✍️ ${q.username}</span>
+                            ${q.author ? `· ${q.author}` : ''}
+                        </div>
+                        <div class="quote-actions">
+                            <button class="share-btn" onclick="copyQuote('${q.content.replace(/'/g, "\\'")}', '${(q.author || '').replace(/'/g, "\\'")}')">📋 Salin</button>
+                            ${(q.username === currentUser || currentUser === 'arekujo001') ? `<button class="del-btn" onclick="deleteQuote(${q.id})">🗑</button>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addQuote() {
+            const content = document.getElementById('quoteInput').value.trim();
+            const author = document.getElementById('authorInput').value.trim();
+            if (!content) return;
+            const res = await fetch('/api/quotes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ content, author })
+            });
+            if (res.ok) {
+                document.getElementById('quoteInput').value = '';
+                document.getElementById('authorInput').value = '';
+                loadQuotes();
+            }
+        }
+
+        async function deleteQuote(id) {
+            if (!confirm('Hapus quote ini?')) return;
+            await fetch(`/api/quotes/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            loadQuotes();
+        }
+
+        function copyQuote(content, author) {
+            const text = author ? `"${content}"\n— ${author}` : `"${content}"`;
+            navigator.clipboard.writeText(text);
+            const toast = document.getElementById('copiedToast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        loadQuotes();
+    </script>
+</body>
+</html>

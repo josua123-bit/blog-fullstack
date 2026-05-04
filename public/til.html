@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>today i learned</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav a:hover { color: #fff; }
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
+        .header { margin-bottom: 40px; }
+        .header h1 { font-size: 32px; color: #fff; font-weight: 600; margin-bottom: 8px; }
+        .header p { color: #555; font-size: 15px; }
+        .input-box { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 20px; margin-bottom: 40px; }
+        .input-box textarea { width: 100%; background: transparent; border: none; color: #e0e0e0; font-size: 16px; font-family: 'Segoe UI', sans-serif; resize: none; outline: none; min-height: 100px; line-height: 1.7; }
+        .input-box textarea::placeholder { color: #444; }
+        .input-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #1e1e1e; }
+        .date-display { font-size: 13px; color: #444; }
+        .submit-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .submit-btn:hover { opacity: 0.85; }
+        .til-list { display: flex; flex-direction: column; gap: 16px; }
+        .til-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 20px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; }
+        .til-card:hover { border-color: #333; }
+        .til-date { font-size: 12px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .til-content { font-size: 16px; color: #ccc; line-height: 1.7; white-space: pre-wrap; }
+        .til-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+        .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
+        .del-btn:hover { color: #ff6b6b; }
+        .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
+        .success { color: #6bffb8; font-size: 13px; margin-bottom: 12px; display: none; }
+        footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="logo">for heal</a>
+        <a href="index.html">← Kembali</a>
+    </nav>
+
+    <div class="container">
+        <div class="header">
+            <h1>📓 Today I Learned</h1>
+            <p>Catat hal-hal baru yang kamu pelajari hari ini.</p>
+        </div>
+
+        <div class="input-box">
+            <textarea id="tilInput" placeholder="Hari ini aku belajar bahwa..."></textarea>
+            <div class="input-footer">
+                <span class="date-display" id="todayDate"></span>
+                <button class="submit-btn" onclick="addTIL()">Simpan</button>
+            </div>
+        </div>
+
+        <p class="success" id="successMsg"></p>
+        <div class="til-list" id="tilList">
+            <p class="empty">Belum ada catatan. Mulai tulis sekarang!</p>
+        </div>
+    </div>
+
+    <footer><p>made with my hand</p></footer>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) location.href = 'login.html';
+
+        // Set today's date
+        document.getElementById('todayDate').textContent = new Date().toLocaleDateString('id-ID', {
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+        });
+
+        async function loadTIL() {
+            const res = await fetch('/api/til', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const data = await res.json();
+            const list = document.getElementById('tilList');
+            if (data.length === 0) {
+                list.innerHTML = '<p class="empty">Belum ada catatan. Mulai tulis sekarang!</p>';
+                return;
+            }
+            list.innerHTML = data.map(t => `
+                <div class="til-card">
+                    <p class="til-date">📅 ${t.date}</p>
+                    <p class="til-content">${t.content}</p>
+                    <div class="til-actions">
+                        <button class="del-btn" onclick="deleteTIL(${t.id})">🗑 Hapus</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addTIL() {
+            const content = document.getElementById('tilInput').value.trim();
+            if (!content) return;
+            const res = await fetch('/api/til', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ content })
+            });
+            if (res.ok) {
+                document.getElementById('tilInput').value = '';
+                const successMsg = document.getElementById('successMsg');
+                successMsg.textContent = 'Tersimpan! ✨';
+                successMsg.style.display = 'block';
+                setTimeout(() => successMsg.style.display = 'none', 2000);
+                loadTIL();
+            }
+        }
+
+        async function deleteTIL(id) {
+            if (!confirm('Hapus catatan ini?')) return;
+            await fetch(`/api/til/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            loadTIL();
+        }
+
+        // Enter to save
+        document.getElementById('tilInput').addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'Enter') addTIL();
+        });
+
+        loadTIL();
+    </script>
+</body>
+</html>
