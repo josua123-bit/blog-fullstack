@@ -24,25 +24,12 @@ const pool = new Pool({
 const storage = multer.memoryStorage();
 const upload = multer({
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // naikkan biar audio aman
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowedTypes = [
-            // image
-            'image/jpeg',
-            'image/jpg',
-            'image/png',
-            'image/gif',
-            'image/webp',
-
-            // audio
-            'audio/mpeg',
-            'audio/wav',
-            'audio/ogg',
-            'audio/webm'
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
+            'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'
         ];
-
-        console.log('UPLOAD TYPE:', file.mimetype); // debug
-
         if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
@@ -197,7 +184,7 @@ app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res)
 app.get('/api/articles', async (req, res) => {
     const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const result = await Promise.all(articles.rows.map(async a => {
-        const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [a.id]);
+        const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [a.id]);
         const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [a.id]);
         return { ...a, comments: comments.rows, likes: parseInt(likes.rows[0].count) };
     }));
@@ -218,18 +205,24 @@ app.post('/api/articles', authMiddleware, async (req, res) => {
 app.get('/api/articles/:id', async (req, res) => {
     const article = await pool.query('SELECT * FROM articles WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
-    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [req.params.id]);
+    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [req.params.id]);
     const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [req.params.id]);
     res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
 });
 
-app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
-    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.id]);
-    if (quote.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+// ✅ FIX: Route delete artikel (user bisa hapus miliknya, admin bisa hapus semua)
+app.delete('/api/articles/:id', authMiddleware, async (req, res) => {
+    const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
+    if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const isAdmin = req.user.username === process.env.ADMIN;
-    if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
-    await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
-    res.json({ message: 'Berhasil dihapus!' });
+    if (article.rows[0].author !== req.user.username && !isAdmin) {
+        return res.status(403).json({ message: 'Tidak punya izin' });
+    }
+    await pool.query(
+        'UPDATE articles SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
+        [req.user.username, req.params.id]
+    );
+    res.json({ message: 'Artikel berhasil dihapus!' });
 });
 
 // =================== LIKES ===================
@@ -283,30 +276,8 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
         'INSERT INTO comments (article_id, author, text, image_url, date) VALUES ($1, $2, $3, $4, $5)',
         [req.params.id, req.user.username, text, imageUrl, date]
     );
-    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [req.params.id]);
+    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [req.params.id]);
     res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
-});
-
-// =================== ADMIN ===================
-app.get('/api/admin/users', adminMiddleware, async (req, res) => {
-    const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
-    res.json(users.rows);
-});
-
-app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
-    const user = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
-    if (user.rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
-    if (user.rows[0].username === process.env.ADMIN) return res.status(403).json({ message: 'Tidak bisa hapus admin' });
-    await pool.query('DELETE FROM comments WHERE author = $1', [user.rows[0].username]);
-    await pool.query('DELETE FROM likes WHERE username = $1', [user.rows[0].username]);
-    await pool.query('DELETE FROM articles WHERE author = $1', [user.rows[0].username]);
-    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
-    res.json({ message: 'User berhasil dihapus!' });
-});
-
-app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
-    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
-    res.json(articles.rows);
 });
 
 // =================== TODAY I LEARNED ===================
@@ -355,7 +326,7 @@ app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
     if (quote.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     const isAdmin = req.user.username === process.env.ADMIN;
     if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
-    await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
+    await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
     res.json({ message: 'Berhasil dihapus!' });
 });
 
@@ -384,14 +355,61 @@ app.delete('/api/voicenotes/:id', authMiddleware, async (req, res) => {
     res.json({ message: 'Berhasil dihapus!' });
 });
 
-// Admin - lihat semua aktivitas
+// =================== ADMIN ===================
+app.get('/api/admin/users', adminMiddleware, async (req, res) => {
+    const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
+    res.json(users.rows);
+});
+
+app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
+    const user = await pool.query('SELECT * FROM users WHERE id = $1', [req.params.id]);
+    if (user.rows.length === 0) return res.status(404).json({ message: 'User tidak ditemukan' });
+    if (user.rows[0].username === process.env.ADMIN) return res.status(403).json({ message: 'Tidak bisa hapus admin' });
+    await pool.query('DELETE FROM comments WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM likes WHERE username = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM articles WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+    res.json({ message: 'User berhasil dihapus!' });
+});
+
+app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
+    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    res.json(articles.rows);
+});
+
+// ✅ FIX: Admin bisa hapus artikel lewat route khusus admin
+app.delete('/api/admin/articles/:id', adminMiddleware, async (req, res) => {
+    const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
+    if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
+    await pool.query(
+        'UPDATE articles SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
+        [req.user.username, req.params.id]
+    );
+    res.json({ message: 'Artikel berhasil dihapus!' });
+});
+
+app.delete('/api/admin/quotes/:id', adminMiddleware, async (req, res) => {
+    await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'Quote dihapus!' });
+});
+
+app.delete('/api/admin/til/:id', adminMiddleware, async (req, res) => {
+    await pool.query('UPDATE til SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'TIL dihapus!' });
+});
+
+app.delete('/api/admin/voicenotes/:id', adminMiddleware, async (req, res) => {
+    await pool.query('UPDATE voice_notes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'Voice note dihapus!' });
+});
+
 app.get('/api/admin/all', adminMiddleware, async (req, res) => {
     const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
-    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const comments = await pool.query('SELECT * FROM comments WHERE deleted_at IS NULL ORDER BY created_at DESC');
-    const quotes = await pool.query('SELECT * FROM quotes ORDER BY created_at DESC');
-    const til = await pool.query('SELECT * FROM til ORDER BY created_at DESC');
-    const voiceNotes = await pool.query('SELECT * FROM voice_notes ORDER BY created_at DESC');
+    const quotes = await pool.query('SELECT * FROM quotes WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const til = await pool.query('SELECT * FROM til WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const voiceNotes = await pool.query('SELECT * FROM voice_notes WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const deleted = await pool.query(`
         SELECT 'artikel' as type, title as content, author as username, deleted_at, deleted_by FROM articles WHERE deleted_at IS NOT NULL
         UNION ALL
@@ -411,21 +429,6 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
         voiceNotes: voiceNotes.rows,
         deleted: deleted.rows
     });
-});
-
-app.delete('/api/admin/quotes/:id', adminMiddleware, async (req, res) => {
-    await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
-    res.json({ message: 'Quote dihapus!' });
-});
-
-app.delete('/api/admin/til/:id', adminMiddleware, async (req, res) => {
-    await pool.query('DELETE FROM til WHERE id = $1', [req.params.id]);
-    res.json({ message: 'TIL dihapus!' });
-});
-
-app.delete('/api/admin/voicenotes/:id', adminMiddleware, async (req, res) => {
-    await pool.query('DELETE FROM voice_notes WHERE id = $1', [req.params.id]);
-    res.json({ message: 'Voice note dihapus!' });
 });
 
 // =================== START ===================
