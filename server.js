@@ -275,6 +275,56 @@ app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
     res.json(articles.rows);
 });
 
+// =================== TODAY I LEARNED ===================
+app.get('/api/til', authMiddleware, async (req, res) => {
+    const result = await pool.query('SELECT * FROM til WHERE username = $1 ORDER BY created_at DESC', [req.user.username]);
+    res.json(result.rows);
+});
+
+app.post('/api/til', authMiddleware, async (req, res) => {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ message: 'Isi tidak boleh kosong' });
+    const date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const result = await pool.query(
+        'INSERT INTO til (username, content, date) VALUES ($1, $2, $3) RETURNING *',
+        [req.user.username, content, date]
+    );
+    res.json({ message: 'TIL ditambahkan!', til: result.rows[0] });
+});
+
+app.delete('/api/til/:id', authMiddleware, async (req, res) => {
+    const til = await pool.query('SELECT * FROM til WHERE id = $1', [req.params.id]);
+    if (til.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+    if (til.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('DELETE FROM til WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
+});
+
+// =================== QUOTES ===================
+app.get('/api/quotes', async (req, res) => {
+    const result = await pool.query('SELECT * FROM quotes ORDER BY created_at DESC LIMIT 20');
+    res.json(result.rows);
+});
+
+app.post('/api/quotes', authMiddleware, async (req, res) => {
+    const { content, author } = req.body;
+    if (!content) return res.status(400).json({ message: 'Quote tidak boleh kosong' });
+    const result = await pool.query(
+        'INSERT INTO quotes (username, content, author) VALUES ($1, $2, $3) RETURNING *',
+        [req.user.username, content, author || null]
+    );
+    res.json({ message: 'Quote ditambahkan!', quote: result.rows[0] });
+});
+
+app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
+    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.id]);
+    if (quote.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
+});
+
 // =================== START ===================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
