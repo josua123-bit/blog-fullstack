@@ -24,13 +24,29 @@ const pool = new Pool({
 const storage = multer.memoryStorage();
 const upload = multer({
     storage,
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 }, // naikkan biar audio aman
     fileFilter: (req, file, cb) => {
-        const allowed = /jpeg|jpg|png|gif|webp/;
-        if (allowed.test(path.extname(file.originalname).toLowerCase())) {
+        const allowedTypes = [
+            // image
+            'image/jpeg',
+            'image/jpg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+
+            // audio
+            'audio/mpeg',
+            'audio/wav',
+            'audio/ogg',
+            'audio/webm'
+        ];
+
+        console.log('UPLOAD TYPE:', file.mimetype); // debug
+
+        if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
-            cb(new Error('Hanya file gambar yang diperbolehkan!'));
+            cb(new Error('Hanya gambar & audio yang diperbolehkan!'), false);
         }
     }
 });
