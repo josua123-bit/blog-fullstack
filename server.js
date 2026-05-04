@@ -116,6 +116,18 @@ async function setupDB() {
     console.log('Database siap!');
 }
 
+// Migration soft delete
+try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+try { await pool.query(`ALTER TABLE articles ADD COLUMN deleted_by TEXT`); } catch {}
+try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+try { await pool.query(`ALTER TABLE quotes ADD COLUMN deleted_by TEXT`); } catch {}
+try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+try { await pool.query(`ALTER TABLE til ADD COLUMN deleted_by TEXT`); } catch {}
+try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_by TEXT`); } catch {}
+try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_at TIMESTAMP`); } catch {}
+try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_by TEXT`); } catch {}
+
 setupDB();
 
 // =================== AUTH ===================
@@ -183,7 +195,7 @@ app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res)
 
 // =================== ARTIKEL ===================
 app.get('/api/articles', async (req, res) => {
-    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const result = await Promise.all(articles.rows.map(async a => {
         const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [a.id]);
         const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [a.id]);
@@ -204,22 +216,20 @@ app.post('/api/articles', authMiddleware, async (req, res) => {
 });
 
 app.get('/api/articles/:id', async (req, res) => {
-    const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
+    const article = await pool.query('SELECT * FROM articles WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1', [req.params.id]);
     const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [req.params.id]);
     res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
 });
 
-app.delete('/api/articles/:id', authMiddleware, async (req, res) => {
-    const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
-    if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
+app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
+    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.id]);
+    if (quote.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     const isAdmin = req.user.username === process.env.ADMIN;
-    if (article.rows[0].author !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
-    await pool.query('DELETE FROM comments WHERE article_id = $1', [req.params.id]);
-    await pool.query('DELETE FROM likes WHERE article_id = $1', [req.params.id]);
-    await pool.query('DELETE FROM articles WHERE id = $1', [req.params.id]);
-    res.json({ message: 'Artikel berhasil dihapus!' });
+    if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
 });
 
 // =================== LIKES ===================
@@ -301,7 +311,7 @@ app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
 
 // =================== TODAY I LEARNED ===================
 app.get('/api/til', authMiddleware, async (req, res) => {
-    const result = await pool.query('SELECT * FROM til WHERE username = $1 ORDER BY created_at DESC', [req.user.username]);
+    const result = await pool.query('SELECT * FROM til WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.user.username]);
     res.json(result.rows);
 });
 
@@ -320,13 +330,13 @@ app.delete('/api/til/:id', authMiddleware, async (req, res) => {
     const til = await pool.query('SELECT * FROM til WHERE id = $1', [req.params.id]);
     if (til.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     if (til.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
-    await pool.query('DELETE FROM til WHERE id = $1', [req.params.id]);
+    await pool.query('UPDATE til SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
     res.json({ message: 'Berhasil dihapus!' });
 });
 
 // =================== QUOTES ===================
 app.get('/api/quotes', async (req, res) => {
-    const result = await pool.query('SELECT * FROM quotes ORDER BY created_at DESC LIMIT 20');
+    const result = await pool.query('SELECT * FROM quotes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 20');
     res.json(result.rows);
 });
 
@@ -351,7 +361,7 @@ app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
 
 // =================== VOICE NOTES ===================
 app.get('/api/voicenotes', authMiddleware, async (req, res) => {
-    const result = await pool.query('SELECT * FROM voice_notes WHERE username = $1 ORDER BY created_at DESC', [req.user.username]);
+    const result = await pool.query('SELECT * FROM voice_notes WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.user.username]);
     res.json(result.rows);
 });
 
@@ -370,7 +380,7 @@ app.delete('/api/voicenotes/:id', authMiddleware, async (req, res) => {
     const vn = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [req.params.id]);
     if (vn.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     if (vn.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
-    await pool.query('DELETE FROM voice_notes WHERE id = $1', [req.params.id]);
+    await pool.query('UPDATE voice_notes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
     res.json({ message: 'Berhasil dihapus!' });
 });
 
@@ -378,11 +388,20 @@ app.delete('/api/voicenotes/:id', authMiddleware, async (req, res) => {
 app.get('/api/admin/all', adminMiddleware, async (req, res) => {
     const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
     const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
-    const comments = await pool.query('SELECT * FROM comments ORDER BY created_at DESC');
+    const comments = await pool.query('SELECT * FROM comments WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const quotes = await pool.query('SELECT * FROM quotes ORDER BY created_at DESC');
     const til = await pool.query('SELECT * FROM til ORDER BY created_at DESC');
     const voiceNotes = await pool.query('SELECT * FROM voice_notes ORDER BY created_at DESC');
-    const likes = await pool.query('SELECT * FROM likes ORDER BY created_at DESC');
+    const deleted = await pool.query(`
+        SELECT 'artikel' as type, title as content, author as username, deleted_at, deleted_by FROM articles WHERE deleted_at IS NOT NULL
+        UNION ALL
+        SELECT 'quote' as type, content, username, deleted_at, deleted_by FROM quotes WHERE deleted_at IS NOT NULL
+        UNION ALL
+        SELECT 'til' as type, content, username, deleted_at, deleted_by FROM til WHERE deleted_at IS NOT NULL
+        UNION ALL
+        SELECT 'voicenote' as type, title as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
+    `);
     res.json({
         users: users.rows,
         articles: articles.rows,
@@ -390,7 +409,7 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
         quotes: quotes.rows,
         til: til.rows,
         voiceNotes: voiceNotes.rows,
-        likes: likes.rows
+        deleted: deleted.rows
     });
 });
 
