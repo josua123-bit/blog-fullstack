@@ -9,7 +9,7 @@
         body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.8; } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
         nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
         nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
@@ -19,7 +19,7 @@
         .header h1 { font-size: 32px; color: #fff; font-weight: 600; margin-bottom: 8px; }
         .header p { color: #555; font-size: 15px; }
         .recorder { background: #161616; border: 1px solid #222; border-radius: 16px; padding: 40px; text-align: center; margin-bottom: 40px; }
-        .record-btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; font-size: 32px; transition: all 0.3s; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .record-btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; font-size: 32px; transition: all 0.3s; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
         .record-btn.idle { background: #ff6b6b22; border: 2px solid #ff6b6b; color: #ff6b6b; }
         .record-btn.recording { background: #ff6b6b; border: 2px solid #ff6b6b; color: #fff; animation: pulse 1s infinite; }
         .record-status { font-size: 14px; color: #555; margin-bottom: 16px; }
@@ -43,6 +43,7 @@
         .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
         .del-btn:hover { color: #ff6b6b; }
         .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
+        .saving { color: #6bffb8; font-size: 13px; margin-top: 8px; display: none; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
     </style>
 </head>
@@ -64,6 +65,7 @@
             <div class="timer" id="timer">00:00</div>
             <audio class="audio-preview" id="audioPreview" controls></audio>
             <input type="text" class="title-input" id="noteTitle" placeholder="Judul voice note (opsional)" />
+            <p class="saving" id="savingMsg">Menyimpan...</p>
             <button class="save-btn" id="saveBtn" onclick="saveVoiceNote()">💾 Simpan</button>
         </div>
 
@@ -138,13 +140,13 @@
         async function saveVoiceNote() {
             if (!audioBlob) return;
             const title = document.getElementById('noteTitle').value.trim() || 'Voice Note';
-            const date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-            // Upload ke Cloudinary
-            const formData = new FormData();
-            formData.append('image', audioBlob, 'voice.webm');
+            const savingMsg = document.getElementById('savingMsg');
+            savingMsg.style.display = 'block';
 
             try {
+                // Upload audio ke Cloudinary
+                const formData = new FormData();
+                formData.append('image', audioBlob, 'voice.webm');
                 const uploadRes = await fetch('/api/upload', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token },
@@ -152,23 +154,32 @@
                 });
                 const uploadData = await uploadRes.json();
 
-                // Simpan ke localStorage (voice note pribadi)
-                const notes = JSON.parse(localStorage.getItem('voiceNotes') || '[]');
-                notes.unshift({ id: Date.now(), title, date, url: uploadData.url });
-                localStorage.setItem('voiceNotes', JSON.stringify(notes));
+                // Simpan ke database
+                const res = await fetch('/api/voicenotes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ title, url: uploadData.url })
+                });
 
-                document.getElementById('noteTitle').value = '';
-                document.getElementById('audioPreview').classList.remove('show');
-                document.getElementById('saveBtn').classList.remove('show');
-                audioBlob = null;
-                loadNotes();
+                if (res.ok) {
+                    document.getElementById('noteTitle').value = '';
+                    document.getElementById('audioPreview').classList.remove('show');
+                    document.getElementById('saveBtn').classList.remove('show');
+                    savingMsg.style.display = 'none';
+                    audioBlob = null;
+                    loadNotes();
+                }
             } catch {
+                savingMsg.style.display = 'none';
                 alert('Gagal menyimpan voice note.');
             }
         }
 
-        function loadNotes() {
-            const notes = JSON.parse(localStorage.getItem('voiceNotes') || '[]');
+        async function loadNotes() {
+            const res = await fetch('/api/voicenotes', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const notes = await res.json();
             const list = document.getElementById('notesList');
             if (notes.length === 0) {
                 list.innerHTML = '<p class="empty">Belum ada voice note.</p>';
@@ -186,10 +197,12 @@
             `).join('');
         }
 
-        function deleteNote(id) {
+        async function deleteNote(id) {
             if (!confirm('Hapus voice note ini?')) return;
-            const notes = JSON.parse(localStorage.getItem('voiceNotes') || '[]');
-            localStorage.setItem('voiceNotes', JSON.stringify(notes.filter(n => n.id !== id)));
+            await fetch(`/api/voicenotes/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
             loadNotes();
         }
 

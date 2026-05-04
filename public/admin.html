@@ -3,42 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel</title>
+    <title>secret room</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 22px; font-weight: 700; color: #fff; text-decoration: none; }
-        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
+        nav a { color: #aaa; text-decoration: none; font-size: 14px; }
         nav a:hover { color: #fff; }
-        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
+        .container { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
         h1 { font-size: 28px; color: #fff; margin-bottom: 8px; }
         .subtitle { color: #555; font-size: 14px; margin-bottom: 40px; }
-        .tabs { display: flex; gap: 8px; margin-bottom: 30px; }
-        .tab { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 10px 20px; cursor: pointer; font-size: 14px; color: #aaa; transition: all 0.2s; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+        .stat-card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 18px; }
+        .stat-card .number { font-size: 28px; color: #fff; font-weight: 700; }
+        .stat-card .label { font-size: 12px; color: #555; margin-top: 4px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+        .tab { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; color: #aaa; transition: all 0.2s; }
         .tab.active { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
-        .tab:hover:not(.active) { border-color: #444; color: #fff; }
         .section { display: none; }
         .section.active { display: block; }
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
-        .stat-card { background: #161616; border: 1px solid #222; border-radius: 10px; padding: 20px; }
-        .stat-card .number { font-size: 32px; color: #fff; font-weight: 700; margin-bottom: 4px; }
-        .stat-card .label { font-size: 13px; color: #555; }
+        .search-bar { width: 100%; background: #161616; border: 1px solid #222; border-radius: 8px; padding: 10px 16px; color: #fff; font-size: 14px; outline: none; margin-bottom: 16px; }
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 12px 16px; font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1e1e1e; }
-        td { padding: 16px; border-bottom: 1px solid #1a1a1a; font-size: 14px; color: #aaa; }
+        th { text-align: left; padding: 10px 16px; font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1e1e1e; }
+        td { padding: 14px 16px; border-bottom: 1px solid #1a1a1a; font-size: 14px; color: #aaa; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         tr:hover td { background: #111; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; }
-        .badge-admin { background: #1a1a2e; color: #7c83fd; border: 1px solid #7c83fd33; }
-        .badge-user { background: #161616; color: #555; border: 1px solid #222; }
-        .delete-btn { background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b33; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
-        .delete-btn:hover { background: #ff6b6b; color: #000; }
-        .empty-state { text-align: center; color: #444; padding: 60px 0; font-size: 15px; }
-        .search-bar { width: 100%; background: #161616; border: 1px solid #222; border-radius: 8px; padding: 12px 16px; color: #fff; font-size: 14px; outline: none; margin-bottom: 20px; transition: border 0.2s; }
-        .search-bar:focus { border-color: #444; }
-        .success { color: #6bffb8; font-size: 13px; margin-bottom: 16px; display: none; }
-        .error { color: #ff6b6b; font-size: 13px; margin-bottom: 16px; display: none; }
+        .badge-admin { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; background: #1a1a2e; color: #7c83fd; border: 1px solid #7c83fd33; }
+        .badge-user { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; background: #161616; color: #555; border: 1px solid #222; }
+        .del-btn { background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b33; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .del-btn:hover { background: #ff6b6b; color: #000; }
+        .empty-state { text-align: center; color: #333; padding: 40px 0; font-size: 14px; }
+        .success { color: #6bffb8; font-size: 13px; margin-bottom: 12px; display: none; }
+        audio { height: 32px; width: 200px; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
     </style>
 </head>
@@ -49,66 +46,65 @@
     </nav>
 
     <div class="container">
-        <h1>Admin Panel</h1>
-        <p class="subtitle">Kelola semua user dan konten blog.</p>
+        <h1>⚙️ secret room</h1>
+        <p class="subtitle">Semua aktivitas tersimpan di sini, bahkan yang sudah dihapus user.</p>
 
         <div class="stats">
-            <div class="stat-card">
-                <div class="number" id="totalUsers">0</div>
-                <div class="label">Total User</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" id="totalArticles">0</div>
-                <div class="label">Total Artikel</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" id="totalComments">-</div>
-                <div class="label">Total Komentar</div>
-            </div>
+            <div class="stat-card"><div class="number" id="sUsers">0</div><div class="label">👥 Users</div></div>
+            <div class="stat-card"><div class="number" id="sArticles">0</div><div class="label">📝 Artikel</div></div>
+            <div class="stat-card"><div class="number" id="sComments">0</div><div class="label">💬 Komentar</div></div>
+            <div class="stat-card"><div class="number" id="sQuotes">0</div><div class="label">✨ Quotes</div></div>
+            <div class="stat-card"><div class="number" id="sTil">0</div><div class="label">📓 TIL</div></div>
+            <div class="stat-card"><div class="number" id="sVN">0</div><div class="label">🎙️ Voice Notes</div></div>
         </div>
 
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('users')">👥 Users</div>
-            <div class="tab" onclick="switchTab('articles')">📝 Artikel</div>
+            <div class="tab active" onclick="switchTab('users', this)">👥 Users</div>
+            <div class="tab" onclick="switchTab('articles', this)">📝 Artikel</div>
+            <div class="tab" onclick="switchTab('comments', this)">💬 Komentar</div>
+            <div class="tab" onclick="switchTab('quotes', this)">✨ Quotes</div>
+            <div class="tab" onclick="switchTab('til', this)">📓 TIL</div>
+            <div class="tab" onclick="switchTab('voicenotes', this)">🎙️ Voice Notes</div>
         </div>
 
         <p class="success" id="successMsg"></p>
-        <p class="error" id="errorMsg"></p>
 
-        <!-- USERS TAB -->
+        <!-- USERS -->
         <div class="section active" id="usersSection">
-            <input type="text" class="search-bar" placeholder="Cari username..." oninput="filterUsers(this.value)" />
-            <table id="usersTable">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Bergabung</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="usersBody">
-                    <tr><td colspan="4" class="empty-state">Memuat data...</td></tr>
-                </tbody>
-            </table>
+            <input class="search-bar" placeholder="Cari username..." oninput="filterTable('usersBody', this.value, 0)" />
+            <table><thead><tr><th>Username</th><th>Role</th><th>Bergabung</th><th>Aksi</th></tr></thead>
+            <tbody id="usersBody"></tbody></table>
         </div>
 
-        <!-- ARTICLES TAB -->
+        <!-- ARTIKEL -->
         <div class="section" id="articlesSection">
-            <input type="text" class="search-bar" placeholder="Cari artikel..." oninput="filterArticles(this.value)" />
-            <table id="articlesTable">
-                <thead>
-                    <tr>
-                        <th>Judul</th>
-                        <th>Penulis</th>
-                        <th>Tanggal</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="articlesBody">
-                    <tr><td colspan="4" class="empty-state">Memuat data...</td></tr>
-                </tbody>
-            </table>
+            <input class="search-bar" placeholder="Cari judul atau penulis..." oninput="filterTable('articlesBody', this.value, 0)" />
+            <table><thead><tr><th>Judul</th><th>Penulis</th><th>Tanggal</th><th>Aksi</th></tr></thead>
+            <tbody id="articlesBody"></tbody></table>
+        </div>
+
+        <!-- KOMENTAR -->
+        <div class="section" id="commentsSection">
+            <table><thead><tr><th>Penulis</th><th>Isi</th><th>Tanggal</th></tr></thead>
+            <tbody id="commentsBody"></tbody></table>
+        </div>
+
+        <!-- QUOTES -->
+        <div class="section" id="quotesSection">
+            <table><thead><tr><th>Quote</th><th>User</th><th>Sumber</th><th>Aksi</th></tr></thead>
+            <tbody id="quotesBody"></tbody></table>
+        </div>
+
+        <!-- TIL -->
+        <div class="section" id="tilSection">
+            <table><thead><tr><th>User</th><th>Isi</th><th>Tanggal</th><th>Aksi</th></tr></thead>
+            <tbody id="tilBody"></tbody></table>
+        </div>
+
+        <!-- VOICE NOTES -->
+        <div class="section" id="voicenotesSection">
+            <table><thead><tr><th>User</th><th>Judul</th><th>Audio</th><th>Tanggal</th><th>Aksi</th></tr></thead>
+            <tbody id="voicenotesBody"></tbody></table>
         </div>
     </div>
 
@@ -119,131 +115,160 @@
         const currentUser = localStorage.getItem('username');
         if (!token) location.href = 'login.html';
 
-        let allUsers = [];
-        let allArticles = [];
+        let allData = {};
 
-        function switchTab(tab) {
+        function switchTab(tab, el) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            event.target.classList.add('active');
+            el.classList.add('active');
             document.getElementById(tab + 'Section').classList.add('active');
         }
 
-        async function loadUsers() {
-            try {
-                const res = await fetch('/api/admin/users', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (!res.ok) { location.href = 'index.html'; return; }
-                allUsers = await res.json();
-                document.getElementById('totalUsers').textContent = allUsers.length;
-                renderUsers(allUsers);
-            } catch {
-                location.href = 'index.html';
-            }
+        function filterTable(bodyId, query, colIndex) {
+            const rows = document.getElementById(bodyId).querySelectorAll('tr');
+            rows.forEach(row => {
+                const text = row.cells[colIndex]?.textContent.toLowerCase() || '';
+                row.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
+            });
         }
 
-        function renderUsers(users) {
-            const body = document.getElementById('usersBody');
-            if (users.length === 0) {
-                body.innerHTML = '<tr><td colspan="4" class="empty-state">Tidak ada user.</td></tr>';
-                return;
-            }
-            body.innerHTML = users.map(u => `
-                <tr>
-                    <td>👤 ${u.username}</td>
-                    <td><span class="badge ${u.username === currentUser ? 'badge-admin' : 'badge-user'}">${u.username === currentUser ? 'Admin' : 'User'}</span></td>
-                    <td>${new Date(u.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
-                    <td>${u.username !== currentUser ? `<button class="delete-btn" onclick="deleteUser(${u.id}, '${u.username}')">🗑 Hapus</button>` : '<span style="color:#333">—</span>'}</td>
-                </tr>
-            `).join('');
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 3000);
         }
 
-        function filterUsers(query) {
-            const filtered = allUsers.filter(u => u.username.toLowerCase().includes(query.toLowerCase()));
-            renderUsers(filtered);
+        async function loadAll() {
+            const res = await fetch('/api/admin/all', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) { location.href = 'index.html'; return; }
+            allData = await res.json();
+
+            document.getElementById('sUsers').textContent = allData.users.length;
+            document.getElementById('sArticles').textContent = allData.articles.length;
+            document.getElementById('sComments').textContent = allData.comments.length;
+            document.getElementById('sQuotes').textContent = allData.quotes.length;
+            document.getElementById('sTil').textContent = allData.til.length;
+            document.getElementById('sVN').textContent = allData.voiceNotes.length;
+
+            renderUsers();
+            renderArticles();
+            renderComments();
+            renderQuotes();
+            renderTIL();
+            renderVoiceNotes();
         }
 
-        async function loadArticles() {
-            try {
-                const res = await fetch('/api/admin/articles', {
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                allArticles = await res.json();
-                document.getElementById('totalArticles').textContent = allArticles.length;
-                renderArticles(allArticles);
-            } catch {}
+        function renderUsers() {
+            document.getElementById('usersBody').innerHTML = allData.users.length === 0
+                ? '<tr><td colspan="4" class="empty-state">Tidak ada user.</td></tr>'
+                : allData.users.map(u => `
+                    <tr>
+                        <td>👤 ${u.username}</td>
+                        <td><span class="${u.username === currentUser ? 'badge-admin' : 'badge-user'}">${u.username === currentUser ? 'Admin' : 'User'}</span></td>
+                        <td>${new Date(u.created_at).toLocaleDateString('id-ID')}</td>
+                        <td>${u.username !== currentUser ? `<button class="del-btn" onclick="deleteUser(${u.id}, '${u.username}')">🗑 Hapus</button>` : '—'}</td>
+                    </tr>`).join('');
         }
 
-        function renderArticles(articles) {
-            const body = document.getElementById('articlesBody');
-            if (articles.length === 0) {
-                body.innerHTML = '<tr><td colspan="4" class="empty-state">Tidak ada artikel.</td></tr>';
-                return;
-            }
-            body.innerHTML = articles.map(a => `
-                <tr>
-                    <td>${a.title}</td>
-                    <td>✍️ ${a.author}</td>
-                    <td>${a.date}</td>
-                    <td><button class="delete-btn" onclick="deleteArticle(${a.id})">🗑 Hapus</button></td>
-                </tr>
-            `).join('');
+        function renderArticles() {
+            document.getElementById('articlesBody').innerHTML = allData.articles.length === 0
+                ? '<tr><td colspan="4" class="empty-state">Tidak ada artikel.</td></tr>'
+                : allData.articles.map(a => `
+                    <tr>
+                        <td title="${a.title}">${a.title}</td>
+                        <td>✍️ ${a.author}</td>
+                        <td>${a.date}</td>
+                        <td><button class="del-btn" onclick="deleteArticle(${a.id})">🗑</button></td>
+                    </tr>`).join('');
         }
 
-        function filterArticles(query) {
-            const filtered = allArticles.filter(a => 
-                a.title.toLowerCase().includes(query.toLowerCase()) || 
-                a.author.toLowerCase().includes(query.toLowerCase())
-            );
-            renderArticles(filtered);
+        function renderComments() {
+            document.getElementById('commentsBody').innerHTML = allData.comments.length === 0
+                ? '<tr><td colspan="3" class="empty-state">Tidak ada komentar.</td></tr>'
+                : allData.comments.map(c => `
+                    <tr>
+                        <td>${c.author}</td>
+                        <td title="${c.text || ''}">${c.text || '📷 foto'}</td>
+                        <td>${c.date}</td>
+                    </tr>`).join('');
+        }
+
+        function renderQuotes() {
+            document.getElementById('quotesBody').innerHTML = allData.quotes.length === 0
+                ? '<tr><td colspan="4" class="empty-state">Tidak ada quote.</td></tr>'
+                : allData.quotes.map(q => `
+                    <tr>
+                        <td title="${q.content}">${q.content}</td>
+                        <td>${q.username}</td>
+                        <td>${q.author || '—'}</td>
+                        <td><button class="del-btn" onclick="deleteQuote(${q.id})">🗑</button></td>
+                    </tr>`).join('');
+        }
+
+        function renderTIL() {
+            document.getElementById('tilBody').innerHTML = allData.til.length === 0
+                ? '<tr><td colspan="4" class="empty-state">Tidak ada TIL.</td></tr>'
+                : allData.til.map(t => `
+                    <tr>
+                        <td>${t.username}</td>
+                        <td title="${t.content}">${t.content}</td>
+                        <td>${t.date}</td>
+                        <td><button class="del-btn" onclick="deleteTIL(${t.id})">🗑</button></td>
+                    </tr>`).join('');
+        }
+
+        function renderVoiceNotes() {
+            document.getElementById('voicenotesBody').innerHTML = allData.voiceNotes.length === 0
+                ? '<tr><td colspan="5" class="empty-state">Tidak ada voice note.</td></tr>'
+                : allData.voiceNotes.map(v => `
+                    <tr>
+                        <td>${v.username}</td>
+                        <td>${v.title}</td>
+                        <td><audio controls src="${v.url}"></audio></td>
+                        <td>${v.date}</td>
+                        <td><button class="del-btn" onclick="deleteVN(${v.id})">🗑</button></td>
+                    </tr>`).join('');
         }
 
         async function deleteUser(id, username) {
-            if (!confirm(`Yakin mau hapus user "${username}"? Semua artikel dan komentarnya juga akan dihapus!`)) return;
-            try {
-                const res = await fetch(`/api/admin/users/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                const data = await res.json();
-                const successMsg = document.getElementById('successMsg');
-                const errorMsg = document.getElementById('errorMsg');
-                if (res.ok) {
-                    successMsg.textContent = `User "${username}" berhasil dihapus!`;
-                    successMsg.style.display = 'block';
-                    errorMsg.style.display = 'none';
-                    setTimeout(() => successMsg.style.display = 'none', 3000);
-                    loadUsers();
-                    loadArticles();
-                } else {
-                    errorMsg.textContent = data.message;
-                    errorMsg.style.display = 'block';
-                }
-            } catch {
-                document.getElementById('errorMsg').textContent = 'Gagal menghapus user.';
-                document.getElementById('errorMsg').style.display = 'block';
-            }
+            if (!confirm(`Hapus user "${username}"?`)) return;
+            await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            showSuccess(`User "${username}" dihapus!`);
+            loadAll();
         }
 
         async function deleteArticle(id) {
-            if (!confirm('Yakin mau hapus artikel ini?')) return;
-            try {
-                const res = await fetch(`/api/articles/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + token }
-                });
-                if (res.ok) {
-                    document.getElementById('successMsg').textContent = 'Artikel berhasil dihapus!';
-                    document.getElementById('successMsg').style.display = 'block';
-                    setTimeout(() => document.getElementById('successMsg').style.display = 'none', 3000);
-                    loadArticles();
-                }
-            } catch {}
+            if (!confirm('Hapus artikel ini?')) return;
+            await fetch(`/api/articles/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            showSuccess('Artikel dihapus!');
+            loadAll();
         }
 
-        loadUsers();
-        loadArticles();
+        async function deleteQuote(id) {
+            if (!confirm('Hapus quote ini?')) return;
+            await fetch(`/api/admin/quotes/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            showSuccess('Quote dihapus!');
+            loadAll();
+        }
+
+        async function deleteTIL(id) {
+            if (!confirm('Hapus TIL ini?')) return;
+            await fetch(`/api/admin/til/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            showSuccess('TIL dihapus!');
+            loadAll();
+        }
+
+        async function deleteVN(id) {
+            if (!confirm('Hapus voice note ini?')) return;
+            await fetch(`/api/admin/voicenotes/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            showSuccess('Voice note dihapus!');
+            loadAll();
+        }
+
+        loadAll();
     </script>
 </body>
-</html>
+</html> 

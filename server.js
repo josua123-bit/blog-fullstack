@@ -104,6 +104,14 @@ async function setupDB() {
             author TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS voice_notes (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            title TEXT NOT NULL,
+            url TEXT NOT NULL,
+            date TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
     `);
     console.log('Database siap!');
 }
@@ -339,6 +347,66 @@ app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
     if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
     await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
     res.json({ message: 'Berhasil dihapus!' });
+});
+
+// =================== VOICE NOTES ===================
+app.get('/api/voicenotes', authMiddleware, async (req, res) => {
+    const result = await pool.query('SELECT * FROM voice_notes WHERE username = $1 ORDER BY created_at DESC', [req.user.username]);
+    res.json(result.rows);
+});
+
+app.post('/api/voicenotes', authMiddleware, async (req, res) => {
+    const { title, url } = req.body;
+    if (!url) return res.status(400).json({ message: 'URL tidak boleh kosong' });
+    const date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const result = await pool.query(
+        'INSERT INTO voice_notes (username, title, url, date) VALUES ($1, $2, $3, $4) RETURNING *',
+        [req.user.username, title || 'Voice Note', url, date]
+    );
+    res.json({ message: 'Voice note disimpan!', voiceNote: result.rows[0] });
+});
+
+app.delete('/api/voicenotes/:id', authMiddleware, async (req, res) => {
+    const vn = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [req.params.id]);
+    if (vn.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
+    if (vn.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
+    await pool.query('DELETE FROM voice_notes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Berhasil dihapus!' });
+});
+
+// Admin - lihat semua aktivitas
+app.get('/api/admin/all', adminMiddleware, async (req, res) => {
+    const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
+    const articles = await pool.query('SELECT * FROM articles ORDER BY created_at DESC');
+    const comments = await pool.query('SELECT * FROM comments ORDER BY created_at DESC');
+    const quotes = await pool.query('SELECT * FROM quotes ORDER BY created_at DESC');
+    const til = await pool.query('SELECT * FROM til ORDER BY created_at DESC');
+    const voiceNotes = await pool.query('SELECT * FROM voice_notes ORDER BY created_at DESC');
+    const likes = await pool.query('SELECT * FROM likes ORDER BY created_at DESC');
+    res.json({
+        users: users.rows,
+        articles: articles.rows,
+        comments: comments.rows,
+        quotes: quotes.rows,
+        til: til.rows,
+        voiceNotes: voiceNotes.rows,
+        likes: likes.rows
+    });
+});
+
+app.delete('/api/admin/quotes/:id', adminMiddleware, async (req, res) => {
+    await pool.query('DELETE FROM quotes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Quote dihapus!' });
+});
+
+app.delete('/api/admin/til/:id', adminMiddleware, async (req, res) => {
+    await pool.query('DELETE FROM til WHERE id = $1', [req.params.id]);
+    res.json({ message: 'TIL dihapus!' });
+});
+
+app.delete('/api/admin/voicenotes/:id', adminMiddleware, async (req, res) => {
+    await pool.query('DELETE FROM voice_notes WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Voice note dihapus!' });
 });
 
 // =================== START ===================
