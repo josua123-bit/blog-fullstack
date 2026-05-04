@@ -281,8 +281,8 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
 });
 
 // =================== TODAY I LEARNED ===================
-app.get('/api/til', authMiddleware, async (req, res) => {
-    const result = await pool.query('SELECT * FROM til WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.user.username]);
+app.get('/api/til', async (req, res) => {
+    const result = await pool.query('SELECT * FROM til WHERE deleted_at IS NULL ORDER BY created_at DESC');
     res.json(result.rows);
 });
 
@@ -331,8 +331,8 @@ app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
 });
 
 // =================== VOICE NOTES ===================
-app.get('/api/voicenotes', authMiddleware, async (req, res) => {
-    const result = await pool.query('SELECT * FROM voice_notes WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC', [req.user.username]);
+app.get('/api/voicenotes', async (req, res) => {
+    const result = await pool.query('SELECT * FROM voice_notes WHERE deleted_at IS NULL ORDER BY created_at DESC');
     res.json(result.rows);
 });
 
