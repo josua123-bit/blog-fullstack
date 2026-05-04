@@ -411,13 +411,13 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
     const til = await pool.query('SELECT * FROM til WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const voiceNotes = await pool.query('SELECT * FROM voice_notes WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const deleted = await pool.query(`
-        SELECT 'artikel' as type, title as content, author as username, deleted_at, deleted_by FROM articles WHERE deleted_at IS NOT NULL
+        SELECT 'artikel' as type, id, title as preview, content, author as username, deleted_at, deleted_by FROM articles WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'quote' as type, content, username, deleted_at, deleted_by FROM quotes WHERE deleted_at IS NOT NULL
+        SELECT 'quote' as type, id, content as preview, content, username, deleted_at, deleted_by FROM quotes WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'til' as type, content, username, deleted_at, deleted_by FROM til WHERE deleted_at IS NOT NULL
+        SELECT 'til' as type, id, content as preview, content, username, deleted_at, deleted_by FROM til WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'voicenote' as type, title as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
+        SELECT 'voicenote' as type, id, title as preview, url as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
         ORDER BY deleted_at DESC
     `);
     res.json({
@@ -429,6 +429,27 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
         voiceNotes: voiceNotes.rows,
         deleted: deleted.rows
     });
+});
+
+// Detail item yang dihapus (admin only)
+app.get('/api/admin/deleted/:type/:id', adminMiddleware, async (req, res) => {
+    const { type, id } = req.params;
+    let result;
+    if (type === 'artikel') {
+        result = await pool.query('SELECT * FROM articles WHERE id = $1', [id]);
+    } else if (type === 'quote') {
+        result = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);
+    } else if (type === 'til') {
+        result = await pool.query('SELECT * FROM til WHERE id = $1', [id]);
+    } else if (type === 'voicenote') {
+        result = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [id]);
+    } else if (type === 'komentar') {
+        result = await pool.query('SELECT * FROM comments WHERE id = $1', [id]);
+    } else {
+        return res.status(400).json({ message: 'Tipe tidak valid' });
+    }
+    if (!result.rows.length) return res.status(404).json({ message: 'Tidak ditemukan' });
+    res.json(result.rows[0]);
 });
 
 // =================== START ===================

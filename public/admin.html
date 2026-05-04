@@ -37,6 +37,19 @@
         .success { color: #6bffb8; font-size: 13px; margin-bottom: 12px; display: none; }
         audio { height: 32px; width: 200px; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+
+        /* MODAL */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-box { background: #161616; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; max-width: 640px; width: 90%; max-height: 80vh; overflow-y: auto; position: relative; }
+        .modal-box h2 { font-size: 18px; color: #fff; margin-bottom: 6px; }
+        .modal-meta { font-size: 12px; color: #555; margin-bottom: 16px; }
+        .modal-body { font-size: 14px; color: #aaa; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+        .modal-img { max-width: 100%; border-radius: 8px; margin-top: 12px; margin-bottom: 12px; }
+        .modal-close { position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #555; font-size: 20px; cursor: pointer; }
+        .modal-close:hover { color: #fff; }
+        .view-btn { background: transparent; color: #7c83fd; border: 1px solid #7c83fd33; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .view-btn:hover { background: #7c83fd22; }
     </style>
 </head>
 <body>
@@ -71,20 +84,21 @@
         <p class="success" id="successMsg"></p>
 
         <!-- TRASH -->
-<div class="section" id="trashSection">
-    <table>
-        <thead>
-            <tr>
-                <th>Tipe</th>
-                <th>Isi</th>
-                <th>User</th>
-                <th>Dihapus Oleh</th>
-                <th>Dihapus Pada</th>
-            </tr>
-        </thead>
-        <tbody id="trashBody"></tbody>
-    </table>
-</div>
+        <div class="section" id="trashSection">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipe</th>
+                        <th>Isi</th>
+                        <th>User</th>
+                        <th>Dihapus Oleh</th>
+                        <th>Dihapus Pada</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="trashBody"></tbody>
+            </table>
+        </div>
 
         <!-- USERS -->
         <div class="section active" id="usersSection">
@@ -126,6 +140,14 @@
     </div>
 
     <footer><p>made with my hand</p></footer>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+        <div class="modal-box">
+            <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('open')">✕</button>
+            <div id="modalContent"></div>
+        </div>
+    </div>
 
     <script>
         const token = localStorage.getItem('token');
@@ -180,17 +202,19 @@
         }
 
         function renderTrash() {
-    document.getElementById('trashBody').innerHTML = allData.deleted.length === 0
-        ? '<tr><td colspan="5" class="empty-state">Tidak ada data yang dihapus.</td></tr>'
-        : allData.deleted.map(d => `
-            <tr>
-                <td><span class="badge-user">${d.type}</span></td>
-                <td title="${d.content}">${d.content?.substring(0, 60)}${d.content?.length > 60 ? '...' : ''}</td>
-                <td>${d.username}</td>
-                <td>${d.deleted_by}</td>
-                <td>${new Date(d.deleted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-            </tr>`).join('');
+            document.getElementById('trashBody').innerHTML = allData.deleted.length === 0
+                ? '<tr><td colspan="6" class="empty-state">Tidak ada data yang dihapus.</td></tr>'
+                : allData.deleted.map(d => `
+                    <tr>
+                        <td><span class="badge-user">${d.type}</span></td>
+                        <td title="${d.preview || d.content}">${(d.preview || d.content)?.substring(0, 50)}${(d.preview || d.content)?.length > 50 ? '...' : ''}</td>
+                        <td>${d.username}</td>
+                        <td>${d.deleted_by}</td>
+                        <td>${new Date(d.deleted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+                        <td><button class="view-btn" onclick="viewDeleted('${d.type}', ${d.id})">👁 Lihat</button></td>
+                    </tr>`).join('');
         }
+
         function renderUsers() {
             document.getElementById('usersBody').innerHTML = allData.users.length === 0
                 ? '<tr><td colspan="4" class="empty-state">Tidak ada user.</td></tr>'
@@ -263,6 +287,56 @@
                     </tr>`).join('');
         }
 
+        async function viewDeleted(type, id) {
+            const res = await fetch(`/api/admin/deleted/${type}/${id}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (!res.ok) {
+                alert('Gagal memuat data.');
+                return;
+            }
+            const data = await res.json();
+
+            let html = '';
+            if (type === 'artikel') {
+                html = `
+                    <h2>${data.title || '(tanpa judul)'}</h2>
+                    <div class="modal-meta">✍️ ${data.author} &nbsp;·&nbsp; ${data.date} &nbsp;·&nbsp; dihapus oleh <strong>${data.deleted_by}</strong></div>
+                    ${data.image_url ? `<img class="modal-img" src="${data.image_url}" />` : ''}
+                    <div class="modal-body">${data.content}</div>`;
+            } else if (type === 'quote') {
+                html = `
+                    <h2>Quote</h2>
+                    <div class="modal-meta">👤 ${data.username} &nbsp;·&nbsp; dihapus oleh <strong>${data.deleted_by}</strong></div>
+                    <div class="modal-body">"${data.content}"${data.author ? `\n\n— ${data.author}` : ''}</div>`;
+            } else if (type === 'til') {
+                html = `
+                    <h2>Today I Learned</h2>
+                    <div class="modal-meta">👤 ${data.username} &nbsp;·&nbsp; ${data.date} &nbsp;·&nbsp; dihapus oleh <strong>${data.deleted_by}</strong></div>
+                    <div class="modal-body">${data.content}</div>`;
+            } else if (type === 'voicenote') {
+                html = `
+                    <h2>${data.title}</h2>
+                    <div class="modal-meta">👤 ${data.username} &nbsp;·&nbsp; ${data.date} &nbsp;·&nbsp; dihapus oleh <strong>${data.deleted_by}</strong></div>
+                    <audio controls src="${data.url}" style="width:100%;margin-top:12px;"></audio>`;
+            } else if (type === 'komentar') {
+                html = `
+                    <h2>Komentar</h2>
+                    <div class="modal-meta">👤 ${data.author} &nbsp;·&nbsp; ${data.date} &nbsp;·&nbsp; dihapus oleh <strong>${data.deleted_by}</strong></div>
+                    ${data.image_url ? `<img class="modal-img" src="${data.image_url}" />` : ''}
+                    <div class="modal-body">${data.text || '(hanya gambar)'}</div>`;
+            }
+
+            document.getElementById('modalContent').innerHTML = html;
+            document.getElementById('modalOverlay').classList.add('open');
+        }
+
+        function closeModal(e) {
+            if (e.target.id === 'modalOverlay') {
+                document.getElementById('modalOverlay').classList.remove('open');
+            }
+        }
+
         async function deleteUser(id, username) {
             if (!confirm(`Hapus user "${username}"?`)) return;
             await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
@@ -301,4 +375,4 @@
         loadAll();
     </script>
 </body>
-</html> 
+</html>
