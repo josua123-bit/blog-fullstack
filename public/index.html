@@ -15,7 +15,7 @@
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 22px; font-weight: 700; color: #fff; }
+        nav .logo { font-size: 22px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
         .nav-right { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
 
         .btn { background: #fff; color: #000 !important; padding: 8px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; transition: opacity 0.2s; white-space: nowrap; }
@@ -67,7 +67,18 @@
 </head>
 <body>
     <nav>
-        <div class="logo">for heal</div>
+        <div class="logo">
+            <svg width="32" height="32" viewBox="0 0 200 200" role="img" xmlns="http://www.w3.org/2000/svg">
+                <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M100 148 C80 132, 56 116, 56 92 C56 75, 69 64, 82 64 C89 64, 96 68, 100 74 C104 68, 111 64, 118 64 C131 64, 144 75, 144 92 C144 116, 120 132, 100 148 Z" stroke-width="1.2" opacity="0.9"/>
+                <path d="M100 140 C82 125, 63 111, 63 90 C63 76, 74 67, 85 67 C91 67, 97 70, 100 76 C103 70, 109 67, 115 67 C126 67, 137 76, 137 90 C137 111, 118 125, 100 140 Z" stroke-width="1.2" opacity="0.75"/>
+                <path d="M100 132 C84 118, 70 106, 70 89 C70 77, 79 70, 88 70 C93 70, 98 73, 100 78 C102 73, 107 70, 112 70 C121 70, 130 77, 130 89 C130 106, 116 118, 100 132 Z" stroke-width="1.2" opacity="0.6"/>
+                <path d="M100 124 C86 111, 77 101, 77 88 C77 78, 84 73, 91 73 C95 73, 99 76, 100 80 C101 76, 105 73, 109 73 C116 73, 123 78, 123 88 C123 101, 114 111, 100 124 Z" stroke-width="1.2" opacity="0.45"/>
+                <path d="M100 116 C88 104, 84 96, 84 87 C84 80, 89 76, 94 76 C97 76, 99 78, 100 82 C101 78, 103 76, 106 76 C111 76, 116 80, 116 87 C116 96, 112 104, 100 116 Z" stroke-width="1.2" opacity="0.3"/>
+            </g>
+        </svg>
+        for heal
+    </div>
         <div class="nav-right">
             <!-- Guest -->
             <div id="guestNav" style="display:flex; gap:8px;">
