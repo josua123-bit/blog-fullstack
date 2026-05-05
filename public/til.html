@@ -141,7 +141,7 @@
                         <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
                             <label style="color:#555; font-size:12px; cursor:pointer;">📷 <input type="file" id="ci-${type}-${id}" accept="image/*" style="display:none;"> Foto</label>
                             <label style="color:#555; font-size:12px; cursor:pointer;">📁 <input type="file" id="ca-${type}-${id}" accept="audio/mp4,audio/m4a,audio/webm,audio/*" style="display:none;"> Voice</label>
-                            <button onclick="recordInline('${type}', ${id})" id="rec-${type}-${id}" style="background:transparent; border:1px solid #333; border-radius:6px; padding:5px 12px; color:#aaa; font-size:12px; cursor:pointer;">🎙️ Rekam</button>
+                            <button onclick="recordInline('${type}', ${id})" id="rec-${type}-${id}" style="background:transparent; border:1px solid #333; border-radius:6px; padding:5px 12px; color:#aaa; font-size:12px; cursor:pointer;">🎙️ voice</button>
                             <audio id="ra-${type}-${id}" style="display:none; width:100%; margin-top:6px;" controls></audio>
                             <button onclick="postComment('${type}', ${id}, this)" style="background:#fff; color:#000; border:none; border-radius:6px; padding:6px 16px; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto;">Kirim</button>
                         </div>
