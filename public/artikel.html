@@ -25,17 +25,11 @@
         .like-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
         .like-btn.liked { background: #ff6b6b22; border-color: #ff6b6b; color: #ff6b6b; }
         .like-count { font-size: 14px; color: #555; }
-        /* Comment section */
-        .comment-section { margin-top: 40px; }
-        .comment-toggle { font-size: 14px; color: #555; cursor: pointer; transition: color 0.2s; background: none; border: none; padding: 0; }
-        .comment-toggle:hover { color: #aaa; }
-        .comment-inner { display: none; margin-top: 20px; }
-        .comment-inner.open { display: block; }
-        .comment-card { padding: 14px 0; border-bottom: 1px solid #1a1a1a; }
+        .comment-card { padding: 16px 0; border-bottom: 1px solid #1a1a1a; }
         .comment-author { font-size: 13px; color: #666; margin-bottom: 6px; }
         .comment-author span { color: #aaa; font-weight: 500; }
         .comment-text { font-size: 15px; color: #888; }
-        .empty-comment { color: #444; font-size: 14px; padding: 20px 0; }
+        .comments-box { margin-top: 40px; }
     </style>
 </head>
 <body>
@@ -54,11 +48,7 @@
             <span class="like-count" id="likeCount">0 suka</span>
         </div>
 
-        <!-- Comment Section (universal) -->
-        <div class="comment-section">
-            <button class="comment-toggle" id="commentToggle" onclick="toggleComments()">💬 Lihat komentar</button>
-            <div class="comment-inner" id="commentInner"></div>
-        </div>
+        <div id="commentSection"></div>
     </div>
 
     <script src="comments.js"></script>
@@ -90,6 +80,7 @@
                     <div class="content">${a.content}</div>
                 `;
                 loadLikes();
+                loadComments('article', articleId);
             } catch {
                 location.href = 'index.html';
             }
@@ -123,19 +114,6 @@
             } else {
                 btn.classList.remove('liked');
                 document.getElementById('likeBtnText').textContent = 'Suka';
-            }
-        }
-
-        function toggleComments() {
-            const inner = document.getElementById('commentInner');
-            const btn = document.getElementById('commentToggle');
-            if (inner.classList.contains('open')) {
-                inner.classList.remove('open');
-                btn.textContent = '💬 Lihat komentar';
-            } else {
-                inner.classList.add('open');
-                btn.textContent = '💬 Tutup komentar';
-                loadCommentsInto('article', articleId, inner);
             }
         }
 
