@@ -171,6 +171,8 @@
             }
         }
 
+        const recorders = {};
+        const recBlobs = {};
         async function recordInline(type, id) {
             const btn = document.getElementById(`rec-${type}-${id}`);
             const key = `${type}-${id}`;
