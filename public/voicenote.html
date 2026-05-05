@@ -85,6 +85,16 @@
         let timerInterval = null;
         let seconds = 0;
         let audioBlob = null;
+        let usedMimeType = '';
+
+        // Deteksi format audio yang didukung browser (iOS butuh mp4)
+        function getSupportedMimeType() {
+            const types = ['audio/mp4', 'audio/webm', 'audio/ogg'];
+            for (const type of types) {
+                if (MediaRecorder.isTypeSupported(type)) return type;
+            }
+            return ''; // fallback ke default browser
+        }
 
         function updateTimer() {
             seconds++;
@@ -101,12 +111,16 @@
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
+                    usedMimeType = getSupportedMimeType();
+
+                    mediaRecorder = usedMimeType
+                        ? new MediaRecorder(stream, { mimeType: usedMimeType })
+                        : new MediaRecorder(stream);
 
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                     mediaRecorder.onstop = () => {
-                        audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        audioBlob = new Blob(audioChunks, { type: usedMimeType || 'audio/webm' });
                         const url = URL.createObjectURL(audioBlob);
                         const preview = document.getElementById('audioPreview');
                         preview.src = url;
@@ -144,9 +158,13 @@
             savingMsg.style.display = 'block';
 
             try {
-                // Upload audio ke Cloudinary
+                // Tentukan ekstensi file sesuai format
+                const ext = usedMimeType.includes('mp4') ? 'mp4'
+                          : usedMimeType.includes('ogg') ? 'ogg'
+                          : 'webm';
+
                 const formData = new FormData();
-                formData.append('image', audioBlob, 'voice.webm');
+                formData.append('image', audioBlob, `voice.${ext}`);
                 const uploadRes = await fetch('/api/upload', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token },
@@ -154,7 +172,6 @@
                 });
                 const uploadData = await uploadRes.json();
 
-                // Simpan ke database
                 const res = await fetch('/api/voicenotes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
