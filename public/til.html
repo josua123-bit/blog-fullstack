@@ -177,7 +177,7 @@
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
-                                MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+                                 MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
                 recorders[key] = new MediaRecorder(stream, { mimeType });
                 const chunks = [];
                 recorders[key].ondataavailable = e => chunks.push(e.data);
