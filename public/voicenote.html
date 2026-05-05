@@ -39,21 +39,11 @@
         .note-title { font-size: 15px; color: #fff; font-weight: 500; margin-bottom: 8px; }
         .note-date { font-size: 12px; color: #444; margin-bottom: 12px; }
         .note-audio { width: 100%; }
-        .note-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+        .note-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
         .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
         .del-btn:hover { color: #ff6b6b; }
-        .comment-toggle-btn { background: none; border: none; color: #555; font-size: 13px; cursor: pointer; transition: color 0.2s; padding: 0; }
-        .comment-toggle-btn:hover { color: #aaa; }
-        .note-comments { margin-top: 16px; padding-top: 16px; border-top: 1px solid #1e1e1e; display: none; }
-        .note-comments.open { display: block; }
         .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
         .saving { color: #6bffb8; font-size: 13px; margin-top: 8px; display: none; }
-        /* styles untuk comment section yang dirender comments.js */
-        .comment-card { padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
-        .comment-author { font-size: 13px; color: #666; margin-bottom: 4px; }
-        .comment-author span { color: #aaa; font-weight: 500; }
-        .comment-text { font-size: 14px; color: #888; }
-        .comments-box { margin-top: 0; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
     </style>
 </head>
@@ -86,7 +76,6 @@
 
     <footer><p>made with my hand</p></footer>
 
-    <script src="comments.js"></script>
     <script>
         const token = localStorage.getItem('token');
         if (!token) location.href = 'login.html';
@@ -114,6 +103,7 @@
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
+
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
                     mediaRecorder.onstop = () => {
                         audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
@@ -124,6 +114,7 @@
                         document.getElementById('saveBtn').classList.add('show');
                         stream.getTracks().forEach(t => t.stop());
                     };
+
                     mediaRecorder.start();
                     btn.className = 'record-btn recording';
                     btn.textContent = '⏹️';
@@ -151,7 +142,9 @@
             const title = document.getElementById('noteTitle').value.trim() || 'Voice Note';
             const savingMsg = document.getElementById('savingMsg');
             savingMsg.style.display = 'block';
+
             try {
+                // Upload audio ke Cloudinary
                 const formData = new FormData();
                 formData.append('image', audioBlob, 'voice.webm');
                 const uploadRes = await fetch('/api/upload', {
@@ -160,11 +153,14 @@
                     body: formData
                 });
                 const uploadData = await uploadRes.json();
+
+                // Simpan ke database
                 const res = await fetch('/api/voicenotes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                     body: JSON.stringify({ title, url: uploadData.url })
                 });
+
                 if (res.ok) {
                     document.getElementById('noteTitle').value = '';
                     document.getElementById('audioPreview').classList.remove('show');
@@ -194,33 +190,11 @@
                     <p class="note-title">🎙️ ${n.title}</p>
                     <p class="note-date">📅 ${n.date}</p>
                     <audio class="note-audio" controls src="${n.url}"></audio>
-                    <div class="note-footer">
-                        <button class="comment-toggle-btn" onclick="toggleVNComments(this, ${n.id})">💬 Lihat komentar</button>
+                    <div class="note-actions">
                         <button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>
-                    </div>
-                    <div class="note-comments" id="vn-comments-${n.id}">
-                        <div id="commentSection-${n.id}"></div>
                     </div>
                 </div>
             `).join('');
-        }
-
-        function toggleVNComments(btn, id) {
-            const box = document.getElementById(`vn-comments-${id}`);
-            const section = document.getElementById(`commentSection-${id}`);
-            if (box.classList.contains('open')) {
-                box.classList.remove('open');
-                btn.textContent = '💬 Lihat komentar';
-            } else {
-                box.classList.add('open');
-                btn.textContent = '💬 Tutup komentar';
-                // Arahkan commentSection ke elemen yang benar, lalu load
-                const originalSection = document.getElementById('commentSection');
-                // Swap sementara agar loadComments nulis ke tempat yang benar
-                section.id = 'commentSection';
-                loadComments('voicenote', id);
-                section.id = `commentSection-${id}`;
-            }
         }
 
         async function deleteNote(id) {
