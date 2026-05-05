@@ -7,12 +7,19 @@ const multer = require('multer');
 const fs = require('fs');
 const { Pool } = require('pg');
 const cloudinary = require('cloudinary').v2;
+const webpush = require('web-push');
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+webpush.setVapidDetails(
+    'mailto:' + (process.env.ADMIN_EMAIL || 'admin@forheal.app'),
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+);
 
 const app = express();
 
@@ -28,7 +35,7 @@ const upload = multer({
     fileFilter: (req, file, cb) => {
         const allowedTypes = [
             'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
-            'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'
+            'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm', 'audio/mp4'
         ];
         if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
@@ -98,6 +105,13 @@ async function setupDB() {
             date TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS push_subscriptions (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL,
+            subscription JSONB NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(username, subscription)
+        );
     `);
 
     // Migration soft delete
@@ -115,14 +129,48 @@ async function setupDB() {
     try { await pool.query(`ALTER TABLE comments ADD COLUMN target_id INTEGER`); } catch {}
     try { await pool.query(`UPDATE comments SET target_type = 'article', target_id = article_id WHERE target_type IS NULL`); } catch {}
     try { await pool.query(`ALTER TABLE comments ADD COLUMN audio_url TEXT`); } catch {}
-    try { await pool.query(`ALTER TABLE comments ADD COLUMN target_type TEXT DEFAULT 'article'`); } catch {}
-    try { await pool.query(`ALTER TABLE comments ADD COLUMN target_id INTEGER`); } catch {}
-    try { await pool.query(`UPDATE comments SET target_type = 'article', target_id = article_id WHERE target_type IS NULL`); } catch {}
 
     console.log('Database siap!');
 }
 
 setupDB();
+
+// =================== HELPER PUSH ===================
+async function sendPushToUser(username, payload) {
+    try {
+        const subs = await pool.query('SELECT subscription FROM push_subscriptions WHERE username = $1', [username]);
+        for (const row of subs.rows) {
+            try {
+                await webpush.sendNotification(row.subscription, JSON.stringify(payload));
+            } catch (err) {
+                // Subscription expired/invalid, hapus dari DB
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                    await pool.query('DELETE FROM push_subscriptions WHERE subscription = $1', [JSON.stringify(row.subscription)]);
+                }
+            }
+        }
+    } catch {}
+}
+
+async function sendPushToAll(payload, excludeUsername = null) {
+    try {
+        const subs = await pool.query(
+            excludeUsername
+                ? 'SELECT username, subscription FROM push_subscriptions WHERE username != $1'
+                : 'SELECT username, subscription FROM push_subscriptions',
+            excludeUsername ? [excludeUsername] : []
+        );
+        for (const row of subs.rows) {
+            try {
+                await webpush.sendNotification(row.subscription, JSON.stringify(payload));
+            } catch (err) {
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                    await pool.query('DELETE FROM push_subscriptions WHERE subscription = $1', [JSON.stringify(row.subscription)]);
+                }
+            }
+        }
+    } catch {}
+}
 
 // =================== AUTH ===================
 app.post('/api/register', async (req, res) => {
@@ -171,6 +219,37 @@ function adminMiddleware(req, res, next) {
     }
 }
 
+// =================== PUSH NOTIFICATION ===================
+// Kirim VAPID public key ke frontend
+app.get('/api/push/vapid-key', (req, res) => {
+    res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
+// Simpan subscription user
+app.post('/api/push/subscribe', authMiddleware, async (req, res) => {
+    const { subscription } = req.body;
+    if (!subscription) return res.status(400).json({ message: 'Subscription tidak ada' });
+    try {
+        await pool.query(
+            'INSERT INTO push_subscriptions (username, subscription) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [req.user.username, JSON.stringify(subscription)]
+        );
+        res.json({ message: 'Subscribed!' });
+    } catch {
+        res.status(500).json({ message: 'Gagal subscribe' });
+    }
+});
+
+// Hapus subscription (unsubscribe)
+app.post('/api/push/unsubscribe', authMiddleware, async (req, res) => {
+    const { subscription } = req.body;
+    await pool.query(
+        'DELETE FROM push_subscriptions WHERE username = $1 AND subscription = $2',
+        [req.user.username, JSON.stringify(subscription)]
+    );
+    res.json({ message: 'Unsubscribed!' });
+});
+
 // =================== UPLOAD ===================
 app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: 'Tidak ada file yang diupload' });
@@ -206,6 +285,14 @@ app.post('/api/articles', authMiddleware, async (req, res) => {
         'INSERT INTO articles (title, tag, content, author, date, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
         [title, tag, content, req.user.username, date, imageUrl || null]
     );
+
+    // Kirim notif ke semua user (kecuali yang nulis)
+    sendPushToAll({
+        title: '📝 Artikel Baru!',
+        body: `${req.user.username} nulis "${title}"`,
+        url: `/artikel.html?id=${result.rows[0].id}`
+    }, req.user.username);
+
     res.json({ message: 'Artikel berhasil dibuat!', article: result.rows[0] });
 });
 
@@ -217,7 +304,6 @@ app.get('/api/articles/:id', async (req, res) => {
     res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
 });
 
-// ✅ FIX: Route delete artikel (user bisa hapus miliknya, admin bisa hapus semua)
 app.delete('/api/articles/:id', authMiddleware, async (req, res) => {
     const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
@@ -244,6 +330,17 @@ app.post('/api/articles/:id/like', authMiddleware, async (req, res) => {
     }
     await pool.query('INSERT INTO likes (article_id, username) VALUES ($1, $2)', [id, username]);
     const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+
+    // Notif ke penulis artikel
+    const article = await pool.query('SELECT author, title FROM articles WHERE id = $1', [id]);
+    if (article.rows.length > 0 && article.rows[0].author !== username) {
+        sendPushToUser(article.rows[0].author, {
+            title: '❤️ Ada yang suka artikelmu!',
+            body: `${username} menyukai "${article.rows[0].title}"`,
+            url: `/artikel.html?id=${id}`
+        });
+    }
+
     res.json({ liked: true, count: parseInt(count.rows[0].count) });
 });
 
@@ -283,6 +380,16 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
         'INSERT INTO comments (article_id, author, text, image_url, date) VALUES ($1, $2, $3, $4, $5)',
         [req.params.id, req.user.username, text, imageUrl, date]
     );
+
+    // Notif ke penulis artikel
+    if (article.rows[0].author !== req.user.username) {
+        sendPushToUser(article.rows[0].author, {
+            title: '💬 Komentar Baru!',
+            body: `${req.user.username} komen di "${article.rows[0].title}"`,
+            url: `/artikel.html?id=${req.params.id}`
+        });
+    }
+
     const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [req.params.id]);
     res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
 });
@@ -301,6 +408,14 @@ app.post('/api/til', authMiddleware, async (req, res) => {
         'INSERT INTO til (username, content, date) VALUES ($1, $2, $3) RETURNING *',
         [req.user.username, content, date]
     );
+
+    // Notif ke semua user
+    sendPushToAll({
+        title: '📓 TIL Baru!',
+        body: `${req.user.username}: "${content.substring(0, 60)}..."`,
+        url: '/til.html'
+    }, req.user.username);
+
     res.json({ message: 'TIL ditambahkan!', til: result.rows[0] });
 });
 
@@ -325,6 +440,14 @@ app.post('/api/quotes', authMiddleware, async (req, res) => {
         'INSERT INTO quotes (username, content, author) VALUES ($1, $2, $3) RETURNING *',
         [req.user.username, content, author || null]
     );
+
+    // Notif ke semua user
+    sendPushToAll({
+        title: '💬 Quote Baru!',
+        body: `${req.user.username}: "${content.substring(0, 60)}"`,
+        url: '/quotes.html'
+    }, req.user.username);
+
     res.json({ message: 'Quote ditambahkan!', quote: result.rows[0] });
 });
 
@@ -351,6 +474,14 @@ app.post('/api/voicenotes', authMiddleware, async (req, res) => {
         'INSERT INTO voice_notes (username, title, url, date) VALUES ($1, $2, $3, $4) RETURNING *',
         [req.user.username, title || 'Voice Note', url, date]
     );
+
+    // Notif ke semua user
+    sendPushToAll({
+        title: '🎙️ Voice Note Baru!',
+        body: `${req.user.username} upload voice note: "${title || 'Voice Note'}"`,
+        url: '/voicenote.html'
+    }, req.user.username);
+
     res.json({ message: 'Voice note disimpan!', voiceNote: result.rows[0] });
 });
 
@@ -375,6 +506,7 @@ app.delete('/api/admin/users/:id', adminMiddleware, async (req, res) => {
     await pool.query('DELETE FROM comments WHERE author = $1', [user.rows[0].username]);
     await pool.query('DELETE FROM likes WHERE username = $1', [user.rows[0].username]);
     await pool.query('DELETE FROM articles WHERE author = $1', [user.rows[0].username]);
+    await pool.query('DELETE FROM push_subscriptions WHERE username = $1', [user.rows[0].username]);
     await pool.query('DELETE FROM users WHERE id = $1', [req.params.id]);
     res.json({ message: 'User berhasil dihapus!' });
 });
@@ -384,7 +516,6 @@ app.get('/api/admin/articles', adminMiddleware, async (req, res) => {
     res.json(articles.rows);
 });
 
-// ✅ FIX: Admin bisa hapus artikel lewat route khusus admin
 app.delete('/api/admin/articles/:id', adminMiddleware, async (req, res) => {
     const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
@@ -438,23 +569,15 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
     });
 });
 
-// Detail item yang dihapus (admin only)
 app.get('/api/admin/deleted/:type/:id', adminMiddleware, async (req, res) => {
     const { type, id } = req.params;
     let result;
-    if (type === 'artikel') {
-        result = await pool.query('SELECT * FROM articles WHERE id = $1', [id]);
-    } else if (type === 'quote') {
-        result = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);
-    } else if (type === 'til') {
-        result = await pool.query('SELECT * FROM til WHERE id = $1', [id]);
-    } else if (type === 'voicenote') {
-        result = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [id]);
-    } else if (type === 'komentar') {
-        result = await pool.query('SELECT * FROM comments WHERE id = $1', [id]);
-    } else {
-        return res.status(400).json({ message: 'Tipe tidak valid' });
-    }
+    if (type === 'artikel') result = await pool.query('SELECT * FROM articles WHERE id = $1', [id]);
+    else if (type === 'quote') result = await pool.query('SELECT * FROM quotes WHERE id = $1', [id]);
+    else if (type === 'til') result = await pool.query('SELECT * FROM til WHERE id = $1', [id]);
+    else if (type === 'voicenote') result = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [id]);
+    else if (type === 'komentar') result = await pool.query('SELECT * FROM comments WHERE id = $1', [id]);
+    else return res.status(400).json({ message: 'Tipe tidak valid' });
     if (!result.rows.length) return res.status(404).json({ message: 'Tidak ditemukan' });
     res.json(result.rows[0]);
 });
@@ -505,6 +628,29 @@ app.post('/api/comments/:type/:id', authMiddleware, upload.fields([
         'INSERT INTO comments (target_type, target_id, article_id, author, text, image_url, audio_url, date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
         [type, id, type === 'article' ? id : null, req.user.username, text, imageUrl, audioUrl, date]
     );
+
+    // Notif ke pemilik konten yang dikomentari
+    let ownerUsername = null;
+    let contentTitle = '';
+    let contentUrl = '';
+    if (type === 'article') {
+        const r = await pool.query('SELECT author, title FROM articles WHERE id = $1', [id]);
+        if (r.rows.length) { ownerUsername = r.rows[0].author; contentTitle = r.rows[0].title; contentUrl = `/artikel.html?id=${id}`; }
+    } else if (type === 'til') {
+        const r = await pool.query('SELECT username, content FROM til WHERE id = $1', [id]);
+        if (r.rows.length) { ownerUsername = r.rows[0].username; contentTitle = r.rows[0].content.substring(0, 40); contentUrl = '/til.html'; }
+    } else if (type === 'quote') {
+        const r = await pool.query('SELECT username, content FROM quotes WHERE id = $1', [id]);
+        if (r.rows.length) { ownerUsername = r.rows[0].username; contentTitle = r.rows[0].content.substring(0, 40); contentUrl = '/quotes.html'; }
+    }
+
+    if (ownerUsername && ownerUsername !== req.user.username) {
+        sendPushToUser(ownerUsername, {
+            title: '💬 Komentar Baru!',
+            body: `${req.user.username} komen: "${text.substring(0, 60)}"`,
+            url: contentUrl
+        });
+    }
 
     const comments = await pool.query(
         'SELECT * FROM comments WHERE target_type = $1 AND target_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC',
