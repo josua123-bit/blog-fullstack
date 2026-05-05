@@ -139,8 +139,9 @@
                     <div style="margin-top:16px;">
                         <textarea id="ct-${type}-${id}" placeholder="Tulis komentar..." style="width:100%; background:#0f0f0f; border:1px solid #2a2a2a; border-radius:8px; padding:10px; color:#fff; font-size:14px; outline:none; resize:none; min-height:60px; font-family:'Segoe UI',sans-serif;"></textarea>
                         <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
-                            <label style="color:#555; font-size:12px; cursor:pointer;">📷 <input type="file" id="ci-${type}-${id}" accept="image/*" style="display:none;"> Foto</label>
-                            <label style="color:#555; font-size:12px; cursor:pointer;">🎙️ <input type="file" id="ca-${type}-${id}" accept="audio/*" style="display:none;"> Voice</label>
+                            <label style="color:#555; font-size:12px; cursor:pointer;">🎙️ <input type="file" id="ca-${type}-${id}" accept="audio/mp4,audio/m4a,audio/webm,audio/*" style="display:none;"> Upload Voice</label>
+                            <button onclick="recordInline('${type}', ${id})" id="rec-${type}-${id}" style="background:transparent; border:1px solid #333; border-radius:6px; padding:5px 12px; color:#aaa; font-size:12px; cursor:pointer;">🎙️ Rekam</button>
+                            <audio id="ra-${type}-${id}" style="display:none; width:100%; margin-top:6px;" controls></audio>
                             <button onclick="postComment('${type}', ${id}, this)" style="background:#fff; color:#000; border:none; border-radius:6px; padding:6px 16px; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto;">Kirim</button>
                         </div>
                     </div>
@@ -168,6 +169,39 @@
                 loadCommentsInto(type, id, container);
             }
         }
+
+        async function recordInline(type, id) {
+            const btn = document.getElementById(`rec-${type}-${id}`);
+            const key = `${type}-${id}`;
+            if (!recorders[key] || recorders[key].state === 'inactive') {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
+                                MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+                recorders[key] = new MediaRecorder(stream, { mimeType });
+                const chunks = [];
+                recorders[key].ondataavailable = e => chunks.push(e.data);
+                recorders[key].onstop = () => {
+                    recBlobs[key] = { blob: new Blob(chunks, { type: mimeType }), ext: mimeType.includes('mp4') ? 'mp4' : mimeType.includes('webm') ? 'webm' : 'ogg' };
+                    const audio = document.getElementById(`ra-${type}-${id}`);
+                    audio.src = URL.createObjectURL(recBlobs[key].blob);
+                    audio.style.display = 'block';
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                recorders[key].start();
+                btn.textContent = '⏹️ Stop';
+                btn.style.color = '#ff6b6b';
+                btn.style.borderColor = '#ff6b6b';
+            } catch {
+                alert('Izin mikrofon ditolak!');
+            }    
+        } else {
+            recorders[key].stop();
+            btn.textContent = '🎙️ Rekam';
+            btn.style.color = '#aaa';
+            btn.style.borderColor = '#333';
+        }
+    }
 
         async function addTIL() {
             const content = document.getElementById('tilInput').value.trim();
