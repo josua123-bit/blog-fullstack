@@ -9,18 +9,32 @@
         body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; line-height: 1.7; opacity: 0; animation: fadeIn 0.6s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
         nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
         nav .logo { font-size: 22px; font-weight: 700; color: #fff; }
-        .nav-links { list-style: none; display: flex; gap: 16px; align-items: center; }
-        .nav-links a { color: #aaa; text-decoration: none; font-size: 15px; transition: color 0.2s; white-space: nowrap; }
-        .nav-links a:hover { color: #fff; }
+        .nav-right { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+
         .btn { background: #fff; color: #000 !important; padding: 8px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; text-decoration: none; transition: opacity 0.2s; white-space: nowrap; }
         .btn:hover { opacity: 0.8; }
         .btn-outline { background: transparent; color: #aaa !important; border: 1px solid #444; padding: 8px 20px; border-radius: 6px; font-size: 14px; text-decoration: none; transition: all 0.2s; white-space: nowrap; }
         .btn-outline:hover { border-color: #fff; color: #fff !important; }
-        .hero { text-align: center; padding: 80px 20px 60px; border-bottom: 1px solid #222; }
+
+        .hero { text-align: center; padding: 80px 20px 50px; border-bottom: 1px solid #222; }
         .hero h1 { font-size: 42px; color: #fff; font-weight: 600; margin-bottom: 12px; opacity: 0; animation: fadeUp 0.7s ease 0.3s forwards; }
         .hero p { color: #888; font-size: 17px; opacity: 0; animation: fadeUp 0.7s ease 0.5s forwards; }
+
+        .action-bar { display: none; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 28px 20px 0; }
+        .action-bar a {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: #aaa; font-size: 14px; text-decoration: none;
+            border: 1px solid #2a2a2a; border-radius: 8px;
+            padding: 8px 16px; transition: all 0.2s;
+            background: #161616; white-space: nowrap;
+        }
+        .action-bar a:hover { color: #fff; border-color: #555; background: #1e1e1e; }
+        .action-bar a.primary { background: #fff; color: #000 !important; border-color: #fff; font-weight: 600; }
+        .action-bar a.primary:hover { opacity: 0.85; }
+
         .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
         .section-title { font-size: 13px; letter-spacing: 2px; color: #555; text-transform: uppercase; margin-bottom: 30px; }
         .post-card { border-bottom: 1px solid #1e1e1e; padding: 30px 0; cursor: pointer; transition: transform 0.3s ease, padding-left 0.3s ease; opacity: 0; animation: fadeUp 0.6s ease forwards; }
@@ -36,12 +50,12 @@
         @media (max-width: 768px) {
             nav { padding: 14px 16px; }
             nav .logo { font-size: 18px; }
-            .nav-links { gap: 8px; }
-            .nav-links a { font-size: 13px; }
-            .btn, .btn-outline { padding: 6px 12px; font-size: 12px; }
+            .btn, .btn-outline { padding: 6px 14px; font-size: 13px; }
             .hero { padding: 50px 20px 40px; }
             .hero h1 { font-size: 26px; }
             .hero p { font-size: 14px; }
+            .action-bar { gap: 8px; padding: 20px 16px 0; }
+            .action-bar a { font-size: 13px; padding: 7px 13px; }
             .container { padding: 30px 16px; }
             .post-card h2 { font-size: 17px; }
         }
@@ -50,27 +64,32 @@
 <body>
     <nav>
         <div class="logo">for heal</div>
-        <ul class="nav-links" id="navLinks">
-            <li><a href="index.html">Beranda</a></li>
-            <li id="guestNav" style="display:flex; gap:8px; list-style:none;">
+        <div class="nav-right">
+            <!-- Guest -->
+            <div id="guestNav" style="display:flex; gap:8px;">
                 <a href="login.html" class="btn-outline">Masuk</a>
                 <a href="register.html" class="btn">Daftar</a>
-            </li>
-            <li id="userNav" style="display:none; gap:8px; align-items:center; list-style:none; flex-wrap:wrap;">
-                <a href="tulis.html" class="btn-outline">✏️ Tulis</a>
-                <a href="til.html" style="color:#aaa; font-size:14px; text-decoration:none; white-space:nowrap;">📓 TIL</a>
-                <a href="quotes.html" style="color:#aaa; font-size:14px; text-decoration:none; white-space:nowrap;">💬 Quotes</a>
-                <a href="voicenote.html" style="color:#aaa; font-size:14px; text-decoration:none; white-space:nowrap;">🎙️ Voice</a>
-                <a href="admin.html" id="adminBtn" style="display:none; color:#7c83fd; font-size:14px; text-decoration:none;">⚙️ Admin</a>
-                <span id="usernameDisplay" style="color:#aaa; font-size:14px;"></span>
+            </div>
+            <!-- User (logged in) -->
+            <div id="userNav" style="display:none; gap:8px; align-items:center;">
+                <a href="admin.html" id="adminBtn" style="display:none; color:#7c83fd; font-size:14px; text-decoration:none; white-space:nowrap;">⚙️ Admin</a>
+                <span id="usernameDisplay" style="color:#666; font-size:14px; white-space:nowrap;"></span>
                 <a href="#" onclick="logout()" class="btn">Keluar</a>
-            </li>
-        </ul>
+            </div>
+        </div>
     </nav>
 
     <div class="hero">
         <h1>tempat menuang isi kepala</h1>
         <p>biar ga stress aja ini</p>
+    </div>
+
+    <!-- Tombol aksi — hanya muncul saat login -->
+    <div class="action-bar" id="actionBar">
+        <a href="tulis.html" class="primary">✏️ Tulis</a>
+        <a href="til.html">📓 TIL</a>
+        <a href="quotes.html">💬 Quotes</a>
+        <a href="voicenote.html">🎙️ Voice</a>
     </div>
 
     <div class="container">
@@ -87,8 +106,9 @@
             document.getElementById('guestNav').style.display = 'none';
             document.getElementById('userNav').style.display = 'flex';
             document.getElementById('usernameDisplay').textContent = '👤 ' + username;
+            document.getElementById('actionBar').style.display = 'flex';
             if (username === 'arekujo001') {
-                document.getElementById('adminBtn').style.display = 'block';
+                document.getElementById('adminBtn').style.display = 'inline-block';
             }
         }
 
@@ -99,26 +119,30 @@
         }
 
         async function loadArticles() {
-            const res = await fetch('/api/articles');
-            const articles = await res.json();
-            const list = document.getElementById('articleList');
-            if (articles.length === 0) {
-                list.innerHTML = '<p class="empty">Belum ada artikel. Jadilah yang pertama menulis!</p>';
-                return;
-            }
-            list.innerHTML = articles.map((a, i) => `
-                <div class="post-card" style="animation-delay:${i * 0.15}s" onclick="location.href='artikel.html?id=${a.id}'">
-                    ${a.image_url ? `<img src="${a.image_url}" class="post-cover" />` : ''}
-                    <p class="post-tag">${a.tag}</p>
-                    <h2>${a.title}</h2>
-                    <p>${a.content.substring(0, 120)}...</p>
-                    <div class="post-meta">
-                        <span>✍️ ${a.author}</span>
-                        <span>📅 ${a.date}</span>
-                        <span>💬 ${a.comments.length} komentar</span>
+            try {
+                const res = await fetch('/api/articles');
+                const articles = await res.json();
+                const list = document.getElementById('articleList');
+                if (articles.length === 0) {
+                    list.innerHTML = '<p class="empty">Belum ada artikel. Jadilah yang pertama menulis!</p>';
+                    return;
+                }
+                list.innerHTML = articles.map((a, i) => `
+                    <div class="post-card" style="animation-delay:${i * 0.15}s" onclick="location.href='artikel.html?id=${a.id}'">
+                        ${a.image_url ? `<img src="${a.image_url}" class="post-cover" />` : ''}
+                        <p class="post-tag">${a.tag}</p>
+                        <h2>${a.title}</h2>
+                        <p>${a.content.substring(0, 120)}...</p>
+                        <div class="post-meta">
+                            <span>✍️ ${a.author}</span>
+                            <span>📅 ${a.date}</span>
+                            <span>💬 ${a.comments.length} komentar</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } catch(e) {
+                console.error('Gagal load artikel:', e);
+            }
         }
 
         loadArticles();
