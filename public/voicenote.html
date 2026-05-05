@@ -44,6 +44,16 @@
         .del-btn:hover { color: #ff6b6b; }
         .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
         .saving { color: #6bffb8; font-size: 13px; margin-top: 8px; display: none; }
+        /* Comment section */
+        .comment-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid #1e1e1e; }
+        .comment-toggle { font-size: 13px; color: #555; cursor: pointer; transition: color 0.2s; background: none; border: none; padding: 0; }
+        .comment-toggle:hover { color: #aaa; }
+        .comment-inner { display: none; margin-top: 16px; }
+        .comment-inner.open { display: block; }
+        .comment-card { padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
+        .comment-author { font-size: 13px; color: #666; margin-bottom: 4px; }
+        .comment-author span { color: #aaa; font-weight: 500; }
+        .comment-text { font-size: 14px; color: #888; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
     </style>
 </head>
@@ -76,6 +86,7 @@
 
     <footer><p>made with my hand</p></footer>
 
+    <script src="comments.js"></script>
     <script>
         const token = localStorage.getItem('token');
         if (!token) location.href = 'login.html';
@@ -144,7 +155,6 @@
             savingMsg.style.display = 'block';
 
             try {
-                // Upload audio ke Cloudinary
                 const formData = new FormData();
                 formData.append('image', audioBlob, 'voice.webm');
                 const uploadRes = await fetch('/api/upload', {
@@ -154,7 +164,6 @@
                 });
                 const uploadData = await uploadRes.json();
 
-                // Simpan ke database
                 const res = await fetch('/api/voicenotes', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
@@ -193,8 +202,24 @@
                     <div class="note-actions">
                         <button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>
                     </div>
+                    <div class="comment-section">
+                        <button class="comment-toggle" onclick="toggleComments(this, 'voicenote', ${n.id})">💬 Lihat komentar</button>
+                        <div class="comment-inner" id="comments-voicenote-${n.id}"></div>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        function toggleComments(btn, type, id) {
+            const inner = document.getElementById(`comments-${type}-${id}`);
+            if (inner.classList.contains('open')) {
+                inner.classList.remove('open');
+                btn.textContent = '💬 Lihat komentar';
+            } else {
+                inner.classList.add('open');
+                btn.textContent = '💬 Tutup komentar';
+                loadCommentsInto(type, id, inner);
+            }
         }
 
         async function deleteNote(id) {
