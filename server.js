@@ -111,6 +111,13 @@ async function setupDB() {
     try { await pool.query(`ALTER TABLE voice_notes ADD COLUMN deleted_by TEXT`); } catch {}
     try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_at TIMESTAMP`); } catch {}
     try { await pool.query(`ALTER TABLE comments ADD COLUMN deleted_by TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN target_type TEXT DEFAULT 'article'`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN target_id INTEGER`); } catch {}
+    try { await pool.query(`UPDATE comments SET target_type = 'article', target_id = article_id WHERE target_type IS NULL`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN audio_url TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN target_type TEXT DEFAULT 'article'`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ADD COLUMN target_id INTEGER`); } catch {}
+    try { await pool.query(`UPDATE comments SET target_type = 'article', target_id = article_id WHERE target_type IS NULL`); } catch {}
 
     console.log('Database siap!');
 }
@@ -450,6 +457,60 @@ app.get('/api/admin/deleted/:type/:id', adminMiddleware, async (req, res) => {
     }
     if (!result.rows.length) return res.status(404).json({ message: 'Tidak ditemukan' });
     res.json(result.rows[0]);
+});
+
+// =================== UNIVERSAL COMMENTS ===================
+app.get('/api/comments/:type/:id', async (req, res) => {
+    const { type, id } = req.params;
+    const result = await pool.query(
+        'SELECT * FROM comments WHERE target_type = $1 AND target_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC',
+        [type, id]
+    );
+    res.json(result.rows);
+});
+
+app.post('/api/comments/:type/:id', authMiddleware, upload.fields([
+    { name: 'image', maxCount: 1 },
+    { name: 'audio', maxCount: 1 }
+]), async (req, res) => {
+    const { type, id } = req.params;
+    const date = new Date().toLocaleDateString('id-ID');
+    let imageUrl = null;
+    let audioUrl = null;
+
+    if (req.files?.image) {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog', resource_type: 'auto' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.files.image[0].buffer);
+        });
+        imageUrl = result.secure_url;
+    }
+
+    if (req.files?.audio) {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'blog', resource_type: 'auto' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.files.audio[0].buffer);
+        });
+        audioUrl = result.secure_url;
+    }
+
+    const text = req.body.text || '';
+    if (!text && !imageUrl && !audioUrl) return res.status(400).json({ message: 'Komentar tidak boleh kosong!' });
+
+    await pool.query(
+        'INSERT INTO comments (target_type, target_id, article_id, author, text, image_url, audio_url, date) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [type, id, type === 'article' ? id : null, req.user.username, text, imageUrl, audioUrl, date]
+    );
+
+    const comments = await pool.query(
+        'SELECT * FROM comments WHERE target_type = $1 AND target_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC',
+        [type, id]
+    );
+    res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
 });
 
 // =================== START ===================

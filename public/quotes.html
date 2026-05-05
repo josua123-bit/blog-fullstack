@@ -26,7 +26,7 @@
         .submit-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
         .submit-btn:hover { opacity: 0.85; }
         .quotes-grid { display: flex; flex-direction: column; gap: 16px; }
-        .quote-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 28px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; position: relative; }
+        .quote-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 28px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; }
         .quote-card:hover { border-color: #333; }
         .quote-mark { font-size: 48px; color: #222; line-height: 1; margin-bottom: 8px; font-family: Georgia, serif; }
         .quote-content { font-size: 18px; color: #ccc; line-height: 1.7; font-style: italic; margin-bottom: 16px; }
@@ -41,6 +41,15 @@
         .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
         .copied { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #6bffb8; color: #000; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
         .copied.show { opacity: 1; }
+        .comment-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid #1e1e1e; }
+        .comment-toggle { font-size: 13px; color: #555; cursor: pointer; transition: color 0.2s; background: none; border: none; padding: 0; }
+        .comment-toggle:hover { color: #aaa; }
+        .comment-inner { display: none; margin-top: 16px; }
+        .comment-inner.open { display: block; }
+        .comment-card { padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
+        .comment-author { font-size: 13px; color: #666; margin-bottom: 4px; }
+        .comment-author span { color: #aaa; font-weight: 500; }
+        .comment-text { font-size: 14px; color: #888; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
     </style>
 </head>
@@ -65,28 +74,25 @@
         </div>
 
         <div class="quotes-grid" id="quotesList">
-            <p class="empty">Belum ada quote. Jadilah yang pertama share!</p>
+            <p class="empty">Belum ada quote.</p>
         </div>
     </div>
 
     <div class="copied" id="copiedToast">✓ Quote disalin!</div>
-
     <footer><p>made with my hand</p></footer>
 
+    <script src="comments.js"></script>
     <script>
         const token = localStorage.getItem('token');
         const currentUser = localStorage.getItem('username');
-
-        if (!token) {
-            document.getElementById('inputBox').style.display = 'none';
-        }
+        if (!token) document.getElementById('inputBox').style.display = 'none';
 
         async function loadQuotes() {
             const res = await fetch('/api/quotes');
             const data = await res.json();
             const list = document.getElementById('quotesList');
             if (data.length === 0) {
-                list.innerHTML = '<p class="empty">Belum ada quote. Jadilah yang pertama share!</p>';
+                list.innerHTML = '<p class="empty">Belum ada quote.</p>';
                 return;
             }
             list.innerHTML = data.map(q => `
@@ -103,8 +109,71 @@
                             ${(q.username === currentUser || currentUser === 'arekujo001') ? `<button class="del-btn" onclick="deleteQuote(${q.id})">🗑</button>` : ''}
                         </div>
                     </div>
+                    <div class="comment-section">
+                        <button class="comment-toggle" onclick="toggleComments(this, 'quote', ${q.id})">💬 Lihat komentar</button>
+                        <div class="comment-inner" id="comments-quote-${q.id}"></div>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        function toggleComments(btn, type, id) {
+            const inner = document.getElementById(`comments-${type}-${id}`);
+            if (inner.classList.contains('open')) {
+                inner.classList.remove('open');
+                btn.textContent = '💬 Lihat komentar';
+            } else {
+                inner.classList.add('open');
+                btn.textContent = '💬 Tutup komentar';
+                loadCommentsInto(type, id, inner);
+            }
+        }
+
+        async function loadCommentsInto(type, id, container) {
+            const res = await fetch(`/api/comments/${type}/${id}`);
+            const comments = await res.json();
+            container.innerHTML = `
+                ${comments.length === 0 ? '<p style="color:#444; font-size:13px; padding:10px 0;">Belum ada komentar.</p>' : ''}
+                ${comments.map(c => `
+                    <div class="comment-card">
+                        <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                        ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
+                        ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px;" />` : ''}
+                        ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:8px;"></audio>` : ''}
+                    </div>
+                `).join('')}
+                ${token ? `
+                    <div style="margin-top:16px;">
+                        <textarea id="ct-${type}-${id}" placeholder="Tulis komentar..." style="width:100%; background:#0f0f0f; border:1px solid #2a2a2a; border-radius:8px; padding:10px; color:#fff; font-size:14px; outline:none; resize:none; min-height:60px; font-family:'Segoe UI',sans-serif;"></textarea>
+                        <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
+                            <label style="color:#555; font-size:12px; cursor:pointer;">📷 <input type="file" id="ci-${type}-${id}" accept="image/*" style="display:none;"> Foto</label>
+                            <label style="color:#555; font-size:12px; cursor:pointer;">🎙️ <input type="file" id="ca-${type}-${id}" accept="audio/*" style="display:none;"> Voice</label>
+                            <button onclick="postComment('${type}', ${id}, this)" style="background:#fff; color:#000; border:none; border-radius:6px; padding:6px 16px; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto;">Kirim</button>
+                        </div>
+                    </div>
+                ` : '<p style="color:#555; font-size:13px; margin-top:12px;"><a href="login.html" style="color:#aaa;">Masuk</a> untuk komentar.</p>'}
+            `;
+        }
+
+        async function postComment(type, id, btn) {
+            const text = document.getElementById(`ct-${type}-${id}`)?.value.trim();
+            const imageFile = document.getElementById(`ci-${type}-${id}`)?.files[0];
+            const audioFile = document.getElementById(`ca-${type}-${id}`)?.files[0];
+            if (!text && !imageFile && !audioFile) return;
+            const formData = new FormData();
+            if (text) formData.append('text', text);
+            if (imageFile) formData.append('image', imageFile);
+            if (audioFile) formData.append('audio', audioFile);
+            btn.textContent = '...';
+            const res = await fetch(`/api/comments/${type}/${id}`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+            if (res.ok) {
+                const container = document.getElementById(`comments-${type}-${id}`);
+                loadCommentsInto(type, id, container);
+            }
         }
 
         async function addQuote() {
@@ -125,10 +194,7 @@
 
         async function deleteQuote(id) {
             if (!confirm('Hapus quote ini?')) return;
-            await fetch(`/api/quotes/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
+            await fetch(`/api/quotes/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
             loadQuotes();
         }
 
