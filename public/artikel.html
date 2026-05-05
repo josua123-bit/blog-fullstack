@@ -73,9 +73,13 @@
                 <label style="margin-top:12px; display:block; font-size:13px; color:#777;">Foto (opsional)</label>
                 <input type="file" id="commentImage" accept="image/*" onchange="previewComment()" style="width:100%; background:#161616; border:1px solid #2a2a2a; border-radius:8px; padding:10px 14px; color:#aaa; font-size:14px; outline:none; cursor:pointer; margin-top:6px;" />
                 <img id="commentPreview" style="display:none; width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:10px;" />
-                <p class="error" id="errorMsg"></p>
-                <p class="success" id="successMsg"></p>
-                <button class="comment-btn" onclick="submitComment()">Kirim Komentar</button>
+                <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+                    <button onclick="recordArticleComment()" id="recordArticleBtn" style="background:transparent; border:1px solid #333; border-radius:6px; padding:6px 14px; color:#aaa; font-size:13px; cursor:pointer;">🎙️ Rekam Voice</button>
+                    <audio id="articleAudioPreview" style="display:none; width:100%; margin-top:6px;" controls></audio>
+            </div>
+            <p class="error" id="errorMsg"></p>
+            <p class="success" id="successMsg"></p>
+            <button class="comment-btn" onclick="submitComment()">Kirim Komentar</button>
             </div>
             <p class="login-prompt" id="loginPrompt" style="display:none;">
                 <a href="login.html">Masuk</a> untuk meninggalkan komentar.
@@ -176,7 +180,7 @@
             const successMsg = document.getElementById('successMsg');
             errorMsg.style.display = 'none';
             successMsg.style.display = 'none';
-            if (!text && !imageFile) {
+            if (!text && !imageFile && !articleAudioBlob) {
                 errorMsg.textContent = 'Komentar tidak boleh kosong!';
                 errorMsg.style.display = 'block';
                 return;
@@ -185,6 +189,7 @@
                 const formData = new FormData();
                 formData.append('text', text);
                 if (imageFile) formData.append('image', imageFile);
+                if (articleAudioBlob) formData.append('audio', articleAudioBlob, 'voice.mp4');
                 const res = await fetch(`/api/articles/${articleId}/comments`, {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token },
@@ -234,6 +239,41 @@
                 }
             } catch {
                 alert('Gagal menghapus artikel.');
+            }
+        }
+
+        let articleAudioBlob = null;
+        let articleRecorder = null;
+
+        async function recordArticleComment() {
+            const btn = document.getElementById('recordArticleBtn');
+            if (!articleRecorder || articleRecorder.state === 'inactive') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+                                   : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+                    articleRecorder = new MediaRecorder(stream, { mimeType });
+                    const chunks = [];
+                    articleRecorder.ondataavailable = e => chunks.push(e.data);
+                    articleRecorder.onstop = () => {
+                        articleAudioBlob = new Blob(chunks, { type: mimeType });
+                        const preview = document.getElementById('articleAudioPreview');
+                        preview.src = URL.createObjectURL(articleAudioBlob);
+                        preview.style.display = 'block';
+                        stream.getTracks().forEach(t => t.stop());
+                    };
+                    articleRecorder.start();
+                    btn.textContent = '⏹️ Stop';
+                    btn.style.color = '#ff6b6b';
+                    btn.style.borderColor = '#ff6b6b';
+                } catch {
+                    alert('Izin mikrofon ditolak!');
+                }
+            } else {
+                articleRecorder.stop();
+                btn.textContent = '🎙️ Rekam Voice';
+                btn.style.color = '#aaa';
+                btn.style.borderColor = '#333';
             }
         }
 
