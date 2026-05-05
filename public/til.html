@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>today i learned</title>
+    <title>Today I Learned</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
@@ -32,6 +32,15 @@
         .til-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
         .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
         .del-btn:hover { color: #ff6b6b; }
+        .comment-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid #1e1e1e; }
+        .comment-toggle { font-size: 13px; color: #555; cursor: pointer; transition: color 0.2s; background: none; border: none; padding: 0; }
+        .comment-toggle:hover { color: #aaa; }
+        .comment-inner { display: none; margin-top: 16px; }
+        .comment-inner.open { display: block; }
+        .comment-card { padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
+        .comment-author { font-size: 13px; color: #666; margin-bottom: 4px; }
+        .comment-author span { color: #aaa; font-weight: 500; }
+        .comment-text { font-size: 14px; color: #888; }
         .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
         .success { color: #6bffb8; font-size: 13px; margin-bottom: 12px; display: none; }
         footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
@@ -65,19 +74,17 @@
 
     <footer><p>made with my hand</p></footer>
 
+    <script src="comments.js"></script>
     <script>
         const token = localStorage.getItem('token');
         if (!token) location.href = 'login.html';
 
-        // Set today's date
         document.getElementById('todayDate').textContent = new Date().toLocaleDateString('id-ID', {
             weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
         });
 
         async function loadTIL() {
-            const res = await fetch('/api/til', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
+            const res = await fetch('/api/til', { headers: { 'Authorization': 'Bearer ' + token } });
             const data = await res.json();
             const list = document.getElementById('tilList');
             if (data.length === 0) {
@@ -91,8 +98,71 @@
                     <div class="til-actions">
                         <button class="del-btn" onclick="deleteTIL(${t.id})">🗑 Hapus</button>
                     </div>
+                    <div class="comment-section">
+                        <button class="comment-toggle" onclick="toggleComments(this, 'til', ${t.id})">💬 Lihat komentar</button>
+                        <div class="comment-inner" id="comments-til-${t.id}"></div>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        function toggleComments(btn, type, id) {
+            const inner = document.getElementById(`comments-${type}-${id}`);
+            if (inner.classList.contains('open')) {
+                inner.classList.remove('open');
+                btn.textContent = '💬 Lihat komentar';
+            } else {
+                inner.classList.add('open');
+                btn.textContent = '💬 Tutup komentar';
+                loadCommentsInto(type, id, inner);
+            }
+        }
+
+        async function loadCommentsInto(type, id, container) {
+            const res = await fetch(`/api/comments/${type}/${id}`);
+            const comments = await res.json();
+            container.innerHTML = `
+                ${comments.length === 0 ? '<p style="color:#444; font-size:13px; padding:10px 0;">Belum ada komentar.</p>' : ''}
+                ${comments.map(c => `
+                    <div class="comment-card">
+                        <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                        ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
+                        ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px;" />` : ''}
+                        ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:8px;"></audio>` : ''}
+                    </div>
+                `).join('')}
+                ${token ? `
+                    <div style="margin-top:16px;">
+                        <textarea id="ct-${type}-${id}" placeholder="Tulis komentar..." style="width:100%; background:#0f0f0f; border:1px solid #2a2a2a; border-radius:8px; padding:10px; color:#fff; font-size:14px; outline:none; resize:none; min-height:60px; font-family:'Segoe UI',sans-serif;"></textarea>
+                        <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
+                            <label style="color:#555; font-size:12px; cursor:pointer;">📷 <input type="file" id="ci-${type}-${id}" accept="image/*" style="display:none;"> Foto</label>
+                            <label style="color:#555; font-size:12px; cursor:pointer;">🎙️ <input type="file" id="ca-${type}-${id}" accept="audio/*" style="display:none;"> Voice</label>
+                            <button onclick="postComment('${type}', ${id}, this)" style="background:#fff; color:#000; border:none; border-radius:6px; padding:6px 16px; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto;">Kirim</button>
+                        </div>
+                    </div>
+                ` : '<p style="color:#555; font-size:13px; margin-top:12px;"><a href="login.html" style="color:#aaa;">Masuk</a> untuk komentar.</p>'}
+            `;
+        }
+
+        async function postComment(type, id, btn) {
+            const text = document.getElementById(`ct-${type}-${id}`)?.value.trim();
+            const imageFile = document.getElementById(`ci-${type}-${id}`)?.files[0];
+            const audioFile = document.getElementById(`ca-${type}-${id}`)?.files[0];
+            if (!text && !imageFile && !audioFile) return;
+            const formData = new FormData();
+            if (text) formData.append('text', text);
+            if (imageFile) formData.append('image', imageFile);
+            if (audioFile) formData.append('audio', audioFile);
+            btn.textContent = '...';
+            const res = await fetch(`/api/comments/${type}/${id}`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+            if (res.ok) {
+                const container = document.getElementById(`comments-${type}-${id}`);
+                loadCommentsInto(type, id, container);
+            }
         }
 
         async function addTIL() {
@@ -115,14 +185,10 @@
 
         async function deleteTIL(id) {
             if (!confirm('Hapus catatan ini?')) return;
-            await fetch(`/api/til/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
+            await fetch(`/api/til/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
             loadTIL();
         }
 
-        // Enter to save
         document.getElementById('tilInput').addEventListener('keydown', e => {
             if (e.ctrlKey && e.key === 'Enter') addTIL();
         });
