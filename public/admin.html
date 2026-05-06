@@ -120,7 +120,7 @@
 
         <!-- KOMENTAR -->
         <div class="section" id="commentsSection">
-            <table><thead><tr><th>Penulis</th><th>Isi</th><th>Tanggal</th></tr></thead>
+            <table><thead><tr><th>Penulis</th><th>Isi</th><th>Tanggal</th><th>Aksi</th></tr></thead>
             <tbody id="commentsBody"></tbody></table>
         </div>
 
@@ -245,13 +245,14 @@
 
         function renderComments() {
             document.getElementById('commentsBody').innerHTML = allData.comments.length === 0
-                ? '<tr><td colspan="3" class="empty-state">Tidak ada komentar.</td></tr>'
+                ? '<tr><td colspan="4" class="empty-state">Tidak ada komentar.</td></tr>'
                 : allData.comments.map(c => `
                     <tr>
                         <td>${c.author}</td>
                         <td title="${c.text || ''}">${c.text || '📷 foto'}</td>
                         <td>${c.date}</td>
-                    </tr>`).join('');
+                        <td><button class="del-btn" onclick="deleteComment(${c.id})">🗑</button></td>
+            <       /tr>`).join('');
         }
 
         function renderQuotes() {
@@ -352,6 +353,13 @@
             if (!confirm('Hapus artikel ini?')) return;
             await fetch(`/api/articles/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
             showSuccess('Artikel dihapus!');
+            loadAll();
+        }
+
+        async function deleteComment(id) {
+            if (!confirm('Hapus komentar ini?')) return;
+            await fetch(`/api/comments/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+            showSuccess('Komentar dihapus!');
             loadAll();
         }
 

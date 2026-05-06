@@ -558,6 +558,9 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
         UNION ALL
         SELECT 'voicenote' as type, id, title as preview, url as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
         ORDER BY deleted_at DESC
+        UNION ALL
+        SELECT 'voicenote' as type, id, title as preview, url as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
     `);
     res.json({
         users: users.rows,
@@ -658,6 +661,21 @@ app.post('/api/comments/:type/:id', authMiddleware, upload.fields([
         [type, id]
     );
     res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
+});
+
+// Hapus komentar (soft delete) - oleh author atau admin
+app.delete('/api/comments/:id', authMiddleware, async (req, res) => {
+    const comment = await pool.query('SELECT * FROM comments WHERE id = $1', [req.params.id]);
+    if (comment.rows.length === 0) return res.status(404).json({ message: 'Komentar tidak ditemukan' });
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (comment.rows[0].author !== req.user.username && !isAdmin) {
+        return res.status(403).json({ message: 'Tidak punya izin' });
+    }
+    await pool.query(
+        'UPDATE comments SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
+        [req.user.username, req.params.id]
+    );
+    res.json({ message: 'Komentar berhasil dihapus!' });
 });
 
 // =================== START ===================
