@@ -8,55 +8,319 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <title>all about us</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
-        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        nav a:hover { color: #fff; }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
-        .cover-img { width: 100%; max-height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 40px; }
-        .tag { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
-        h1 { font-size: 36px; color: #fff; font-weight: 600; line-height: 1.3; margin-bottom: 16px; }
-        .meta { display: flex; gap: 16px; font-size: 13px; color: #444; margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid #1e1e1e; align-items: center; flex-wrap: wrap; }
-        .content { font-size: 17px; color: #bbb; line-height: 1.9; white-space: pre-wrap; }
-        .delete-btn { background: transparent; color: #ff6b6b; border: 1px solid #ff6b6b; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; transition: all 0.2s; margin-left: auto; }
-        .delete-btn:hover { background: #ff6b6b; color: #000; }
-        .like-section { display: flex; align-items: center; gap: 12px; margin: 30px 0; padding: 20px 0; border-top: 1px solid #1e1e1e; border-bottom: 1px solid #1e1e1e; }
-        .like-btn { background: transparent; border: 1px solid #333; border-radius: 50px; padding: 10px 20px; color: #aaa; font-size: 15px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
-        .like-btn:hover { border-color: #ff6b6b; color: #ff6b6b; }
-        .like-btn.liked { background: #ff6b6b22; border-color: #ff6b6b; color: #ff6b6b; }
-        .like-count { font-size: 14px; color: #555; }
-        .comments { margin-top: 20px; }
-        .comments h2 { font-size: 18px; color: #fff; margin-bottom: 24px; }
-        .comment-card { padding: 20px 0; border-bottom: 1px solid #1a1a1a; }
-        .comment-author { font-size: 13px; color: #666; margin-bottom: 6px; }
-        .comment-author span { color: #aaa; font-weight: 500; }
-        .comment-text { font-size: 15px; color: #888; }
-        .comment-form { margin-top: 30px; }
-        .comment-form textarea { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 14px; color: #fff; font-size: 15px; outline: none; resize: vertical; min-height: 100px; font-family: 'Segoe UI', sans-serif; transition: border 0.2s; }
-        .comment-form textarea:focus { border-color: #555; }
-        .comment-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 12px; transition: opacity 0.2s; }
-        .comment-btn:hover { opacity: 0.85; }
-        .login-prompt { font-size: 14px; color: #555; margin-top: 20px; }
-        .login-prompt a { color: #aaa; text-decoration: none; }
-        .login-prompt a:hover { color: #fff; }
-        .empty-comment { color: #444; font-size: 14px; padding: 20px 0; }
-        .success { color: #6bffb8; font-size: 13px; margin-top: 8px; display: none; }
-        .error { color: #ff6b6b; font-size: 13px; margin-top: 8px; display: none; }
+
+        body {
+            background:
+                radial-gradient(ellipse 55% 45% at 8%  12%, #fff3e0 0%, transparent 70%),
+                radial-gradient(ellipse 45% 40% at 92% 10%, #e8f5e9 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 50% 90%, #e8eaf6 0%, transparent 70%),
+                radial-gradient(ellipse 40% 35% at 90% 88%, #fce4ec 0%, transparent 70%),
+                #fafafa;
+            color: #2d2d2d;
+            font-family: 'Nunito', 'Segoe UI', sans-serif;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            background: rgba(255,255,255,0.80);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0ece8;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        nav .logo {
+            font-size: 19px;
+            font-weight: 800;
+            color: #2d2d2d;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        nav .back-link {
+            font-size: 14px;
+            font-weight: 700;
+            color: #bbb;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        nav .back-link:hover { color: #b388ff; }
+
+        /* CONTAINER */
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px 80px; }
+
+        .cover-img {
+            width: 100%;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 800;
+            color: #b388ff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 14px;
+            display: inline-block;
+            background: #f3eeff;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        h1 {
+            font-size: 34px;
+            font-weight: 900;
+            color: #1a1a1a;
+            line-height: 1.3;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #bbb;
+            margin-bottom: 40px;
+            padding-bottom: 40px;
+            border-bottom: 2px solid #f0ece8;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .content {
+            font-size: 17px;
+            color: #555;
+            line-height: 1.9;
+            white-space: pre-wrap;
+            font-weight: 500;
+        }
+
+        .delete-btn {
+            background: transparent;
+            color: #e05060;
+            border: 1.5px solid #ffc0cc;
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-left: auto;
+            font-family: 'Nunito', sans-serif;
+        }
+        .delete-btn:hover { background: #fff0f2; }
+
+        /* LIKE */
+        .like-section {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 36px 0;
+            padding: 24px 0;
+            border-top: 2px solid #f0ece8;
+            border-bottom: 2px solid #f0ece8;
+        }
+        .like-btn {
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 30px;
+            padding: 10px 22px;
+            color: #aaa;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Nunito', sans-serif;
+        }
+        .like-btn:hover { border-color: #ffb3c1; color: #e05060; background: #fff0f2; }
+        .like-btn.liked { background: #fff0f2; border-color: #ffb3c1; color: #e05060; }
+        .like-count { font-size: 13px; font-weight: 700; color: #ccc; }
+
+        /* COMMENTS */
+        .comments { margin-top: 24px; }
+        .comments h2 {
+            font-size: 20px;
+            font-weight: 900;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+            letter-spacing: -0.3px;
+        }
+
+        .comment-card {
+            padding: 20px 0;
+            border-bottom: 2px solid #f7f4f0;
+        }
+        .comment-author {
+            font-size: 12px;
+            font-weight: 800;
+            color: #ccc;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 8px;
+        }
+        .comment-author span { color: #b388ff; }
+        .comment-text { font-size: 15px; font-weight: 600; color: #666; line-height: 1.7; }
+
+        /* COMMENT FORM */
+        .comment-form { margin-top: 32px; }
+
+        .comment-form textarea {
+            width: 100%;
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 16px;
+            padding: 14px 16px;
+            color: #2d2d2d;
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Nunito', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .comment-form textarea:focus {
+            border-color: #c9b1ff;
+            box-shadow: 0 0 0 4px rgba(201,177,255,0.12);
+            background: #fff;
+        }
+        .comment-form textarea::placeholder { color: #ccc; font-weight: 500; }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 800;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 7px;
+            margin-top: 18px;
+        }
+
+        .file-input {
+            width: 100%;
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 14px;
+            padding: 11px 16px;
+            color: #aaa;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .voice-btn {
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 20px;
+            padding: 8px 18px;
+            color: #aaa;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .voice-btn:hover { border-color: #c9b1ff; color: #b388ff; }
+
+        .comment-btn {
+            background: linear-gradient(90deg, #b388ff, #c9b1ff);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 28px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: opacity 0.2s, transform 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .comment-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        .login-prompt {
+            font-size: 14px;
+            font-weight: 600;
+            color: #bbb;
+            margin-top: 20px;
+        }
+        .login-prompt a { color: #b388ff; text-decoration: none; font-weight: 800; }
+        .login-prompt a:hover { text-decoration: underline; }
+
+        .empty-comment { color: #ccc; font-size: 14px; font-weight: 600; padding: 20px 0; }
+
+        .success {
+            color: #2d9e6b;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 10px;
+            display: none;
+            background: #f0fdf4;
+            border: 1.5px solid #90ddb8;
+            border-radius: 10px;
+            padding: 10px 14px;
+            text-align: center;
+        }
+        .error {
+            color: #e05060;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 10px;
+            display: none;
+            background: #fff0f2;
+            border: 1.5px solid #ffc0cc;
+            border-radius: 10px;
+            padding: 10px 14px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            nav { padding: 14px 16px; }
+            h1 { font-size: 26px; }
+            .container { padding: 40px 16px 60px; }
+        }
     </style>
 </head>
 <body>
     <nav>
-        <a href="index.html" class="logo">for heal</a>
-        <a href="index.html">← Kembali</a>
+        <a href="index.html" class="logo">
+            <svg width="28" height="28" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M100 148 C80 132,56 116,56 92 C56 75,69 64,82 64 C89 64,96 68,100 74 C104 68,111 64,118 64 C131 64,144 75,144 92 C144 116,120 132,100 148Z" stroke-width="1.4" opacity="0.9"/>
+                    <path d="M100 138 C82 123,64 109,64 90 C64 76,75 67,86 67 C92 67,98 71,100 77 C102 71,108 67,114 67 C125 67,136 76,136 90 C136 109,118 123,100 138Z" stroke-width="1.2" opacity="0.65"/>
+                </g>
+            </svg>
+            for heal
+        </a>
+        <a href="index.html" class="back-link">← Kembali</a>
     </nav>
 
     <div class="container">
         <div id="articleContent">
-            <p style="color:#444;">Memuat artikel...</p>
+            <p style="color:#ccc; font-weight:600;">Memuat artikel...</p>
         </div>
 
         <div class="like-section">
@@ -70,17 +334,21 @@
 
             <div class="comment-form" id="commentForm">
                 <textarea id="commentText" placeholder="Tulis komentarmu..."></textarea>
-                <label style="margin-top:12px; display:block; font-size:13px; color:#777;">Foto (opsional)</label>
-                <input type="file" id="commentImage" accept="image/*" onchange="previewComment()" style="width:100%; background:#161616; border:1px solid #2a2a2a; border-radius:8px; padding:10px 14px; color:#aaa; font-size:14px; outline:none; cursor:pointer; margin-top:6px;" />
-                <img id="commentPreview" style="display:none; width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:10px;" />
-                <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
-                    <button onclick="recordArticleComment()" id="recordArticleBtn" style="background:transparent; border:1px solid #333; border-radius:6px; padding:6px 14px; color:#aaa; font-size:13px; cursor:pointer;">🎙️ voice</button>
+
+                <label class="form-label">Foto (opsional)</label>
+                <input type="file" id="commentImage" accept="image/*" onchange="previewComment()" class="file-input" />
+                <img id="commentPreview" style="display:none; width:100%; max-height:200px; object-fit:cover; border-radius:14px; margin-top:10px;" />
+
+                <div style="display:flex; gap:8px; margin-top:14px; align-items:center; flex-wrap:wrap;">
+                    <button onclick="recordArticleComment()" id="recordArticleBtn" class="voice-btn">🎙️ voice</button>
                     <audio id="articleAudioPreview" style="display:none; width:100%; margin-top:6px;" controls></audio>
                 </div>
+
                 <p class="error" id="errorMsg"></p>
                 <p class="success" id="successMsg"></p>
-                <button class="comment-btn" onclick="submitComment()">Kirim Komentar</button>
+                <button class="comment-btn" onclick="submitComment()">Kirim Komentar →</button>
             </div>
+
             <p class="login-prompt" id="loginPrompt" style="display:none;">
                 <a href="login.html">Masuk</a> untuk meninggalkan komentar.
             </p>
@@ -168,7 +436,7 @@
                 <div class="comment-card">
                     <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
                     ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
-                    ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-top:10px;" />` : ''}
+                    ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:14px; margin-top:10px;" />` : ''}
                     ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:10px;"></audio>` : ''}
                 </div>
             `).join('');
@@ -205,7 +473,7 @@
                     errorMsg.style.display = 'block';
                     return;
                 }
-                successMsg.textContent = 'Komentar berhasil dikirim!';
+                successMsg.textContent = '✅ Komentar berhasil dikirim!';
                 successMsg.style.display = 'block';
                 document.getElementById('commentText').value = '';
                 document.getElementById('commentImage').value = '';
@@ -272,16 +540,16 @@
                     };
                     articleRecorder.start();
                     btn.textContent = '⏹️ Stop';
-                    btn.style.color = '#ff6b6b';
-                    btn.style.borderColor = '#ff6b6b';
+                    btn.style.borderColor = '#ffb3c1';
+                    btn.style.color = '#e05060';
                 } catch {
                     alert('Izin mikrofon ditolak!');
                 }
             } else {
                 articleRecorder.stop();
                 btn.textContent = '🎙️ voice';
+                btn.style.borderColor = '#f0ece8';
                 btn.style.color = '#aaa';
-                btn.style.borderColor = '#333';
             }
         }
 

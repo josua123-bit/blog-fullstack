@@ -7,66 +7,355 @@
     <link rel="apple-touch-icon" href="/icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>Today I Learned</title>
+    <title>Today I Learned — for heal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
-        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        nav a:hover { color: #fff; }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
-        .header { margin-bottom: 40px; }
-        .header h1 { font-size: 32px; color: #fff; font-weight: 600; margin-bottom: 8px; }
-        .header p { color: #555; font-size: 15px; }
-        .input-box { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 20px; margin-bottom: 40px; }
-        .input-box textarea { width: 100%; background: transparent; border: none; color: #e0e0e0; font-size: 16px; font-family: 'Segoe UI', sans-serif; resize: none; outline: none; min-height: 100px; line-height: 1.7; }
-        .input-box textarea::placeholder { color: #444; }
-        .input-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #1e1e1e; }
-        .date-display { font-size: 13px; color: #444; }
-        .submit-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 8px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-        .submit-btn:hover { opacity: 0.85; }
-        .til-list { display: flex; flex-direction: column; gap: 16px; }
-        .til-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 20px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; }
-        .til-card:hover { border-color: #333; }
-        .til-date { font-size: 12px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .til-content { font-size: 16px; color: #ccc; line-height: 1.7; white-space: pre-wrap; }
-        .til-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
-        .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
-        .del-btn:hover { color: #ff6b6b; }
-        .comment-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid #1e1e1e; }
-        .comment-toggle { font-size: 13px; color: #555; cursor: pointer; transition: color 0.2s; background: none; border: none; padding: 0; }
-        .comment-toggle:hover { color: #aaa; }
+
+        body {
+            background: #fff;
+            color: #2d2d2d;
+            font-family: 'Nunito', 'Segoe UI', sans-serif;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0ece8;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav .logo {
+            font-size: 19px;
+            font-weight: 800;
+            color: #2d2d2d;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        nav .back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #888;
+            text-decoration: none;
+            border: 1.5px solid #ddd;
+            border-radius: 20px;
+            padding: 7px 16px;
+            transition: all 0.2s;
+        }
+        nav .back:hover { border-color: #999; color: #444; }
+
+        /* PAGE HEADER */
+        .page-header {
+            background:
+                radial-gradient(ellipse 55% 60% at 5% 0%, #f0fff4 0%, transparent 65%),
+                radial-gradient(ellipse 45% 50% at 95% 0%, #e8f5e9 0%, transparent 65%),
+                radial-gradient(ellipse 40% 40% at 50% 100%, #f0fdf4 0%, transparent 65%),
+                #fafafa;
+            padding: 44px 24px 40px;
+            text-align: center;
+            border-bottom: 1px solid #f0ece8;
+        }
+        .page-header h1 {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #2d9e6b 0%, #7ec8c8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+            opacity: 0;
+            animation: fadeUp 0.6s ease 0.2s forwards;
+        }
+        .page-header p {
+            color: #aaa;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            animation: fadeUp 0.6s ease 0.35s forwards;
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 44px 24px 80px;
+        }
+
+        /* INPUT BOX */
+        .input-box {
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 36px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-box:focus-within {
+            border-color: #90ddb8;
+            box-shadow: 0 0 0 4px rgba(45,158,107,0.07);
+        }
+        .input-box textarea {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #2d2d2d;
+            font-size: 15px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 600;
+            resize: none;
+            outline: none;
+            min-height: 100px;
+            line-height: 1.8;
+        }
+        .input-box textarea::placeholder { color: #ccc; font-weight: 500; }
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #f0ece8;
+        }
+        .date-display {
+            font-size: 12px;
+            font-weight: 700;
+            color: #bbb;
+            letter-spacing: 0.3px;
+        }
+        .submit-btn {
+            background: linear-gradient(90deg, #2d9e6b, #7ec8c8);
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 22px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .submit-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        /* SUCCESS */
+        .success {
+            color: #2d9e6b;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: none;
+            background: #f0fdf4;
+            border: 1.5px solid #90ddb8;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        /* TIL CARDS */
+        .til-list { display: flex; flex-direction: column; gap: 14px; }
+
+        .til-card {
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 18px;
+            padding: 20px 22px;
+            animation: fadeUp 0.4s ease forwards;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .til-card:hover { border-color: #90ddb8; transform: translateX(4px); }
+
+        .til-date {
+            font-size: 11px;
+            font-weight: 800;
+            color: #bbb;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .til-content {
+            font-size: 15px;
+            font-weight: 600;
+            color: #444;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        .til-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 14px;
+        }
+        .del-btn {
+            background: transparent;
+            color: #ddd;
+            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .del-btn:hover { color: #e05060; }
+
+        /* COMMENT SECTION */
+        .comment-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #f0ece8;
+        }
+        .comment-toggle {
+            font-size: 13px;
+            font-weight: 700;
+            color: #bbb;
+            cursor: pointer;
+            transition: color 0.2s;
+            background: none;
+            border: none;
+            padding: 0;
+            font-family: 'Nunito', sans-serif;
+        }
+        .comment-toggle:hover { color: #2d9e6b; }
         .comment-inner { display: none; margin-top: 16px; }
         .comment-inner.open { display: block; }
-        .comment-card { padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
-        .comment-author { font-size: 13px; color: #666; margin-bottom: 4px; }
-        .comment-author span { color: #aaa; font-weight: 500; }
-        .comment-text { font-size: 14px; color: #888; }
-        .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
-        .success { color: #6bffb8; font-size: 13px; margin-bottom: 12px; display: none; }
-        footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+        .comment-card {
+            padding: 12px 0;
+            border-bottom: 1px solid #f4f0ec;
+        }
+        .comment-author {
+            font-size: 12px;
+            font-weight: 700;
+            color: #bbb;
+            margin-bottom: 4px;
+        }
+        .comment-author span { color: #888; }
+        .comment-text {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        /* inline comment form */
+        .comment-textarea {
+            width: 100%;
+            background: #fff;
+            border: 2px solid #f0ece8;
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: #2d2d2d;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            resize: none;
+            min-height: 60px;
+            font-family: 'Nunito', sans-serif;
+            transition: border-color 0.2s;
+        }
+        .comment-textarea:focus { border-color: #90ddb8; }
+        .comment-send-btn {
+            background: linear-gradient(90deg, #2d9e6b, #7ec8c8);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 6px 18px;
+            font-size: 13px;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            margin-left: auto;
+        }
+        .comment-file-label {
+            color: #bbb;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+        }
+        .comment-rec-btn {
+            background: transparent;
+            border: 1.5px solid #e8e0f0;
+            border-radius: 8px;
+            padding: 5px 12px;
+            color: #bbb;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            transition: all 0.2s;
+        }
+        .comment-rec-btn:hover { border-color: #c4a8f0; color: #7c3aed; }
+
+        .empty {
+            text-align: center;
+            color: #bbb;
+            padding: 60px 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* FOOTER */
+        footer {
+            text-align: center;
+            padding: 36px 20px;
+            border-top: 1px solid #f4f0ec;
+            font-size: 13px;
+            color: #bbb;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        .footer-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 10px; }
+        .footer-dots span { width: 8px; height: 8px; border-radius: 50%; }
+
+        @media (max-width: 600px) {
+            nav { padding: 14px 16px; }
+            .page-header { padding: 32px 16px 28px; }
+            .page-header h1 { font-size: 26px; }
+            .container { padding: 28px 16px 60px; }
+        }
     </style>
 </head>
 <body>
+
     <nav>
-        <a href="index.html" class="logo">for heal</a>
-        <a href="index.html">← Kembali</a>
+        <a href="index.html" class="logo">
+            <svg width="28" height="28" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M100 148 C80 132,56 116,56 92 C56 75,69 64,82 64 C89 64,96 68,100 74 C104 68,111 64,118 64 C131 64,144 75,144 92 C144 116,120 132,100 148Z" stroke-width="1.4" opacity="0.9"/>
+                    <path d="M100 138 C82 123,64 109,64 90 C64 76,75 67,86 67 C92 67,98 71,100 77 C102 71,108 67,114 67 C125 67,136 76,136 90 C136 109,118 123,100 138Z" stroke-width="1.2" opacity="0.65"/>
+                </g>
+            </svg>
+            for heal
+        </a>
+        <a href="index.html" class="back">← Kembali</a>
     </nav>
 
-    <div class="container">
-        <div class="header">
-            <h1>📓 Today I Learned</h1>
-            <p>Catat hal-hal baru yang kamu pelajari hari ini.</p>
-        </div>
+    <div class="page-header">
+        <h1>📓 Today I Learned</h1>
+        <p>Catat hal-hal baru yang kamu pelajari hari ini.</p>
+    </div>
 
+    <div class="container">
         <div class="input-box">
             <textarea id="tilInput" placeholder="Hari ini aku belajar bahwa..."></textarea>
             <div class="input-footer">
                 <span class="date-display" id="todayDate"></span>
-                <button class="submit-btn" onclick="addTIL()">Simpan</button>
+                <button class="submit-btn" onclick="addTIL()">Simpan ✨</button>
             </div>
         </div>
 
@@ -76,7 +365,16 @@
         </div>
     </div>
 
-    <footer><p>made with my hand</p></footer>
+    <footer>
+        <div class="footer-dots">
+            <span style="background:#f7a8b8"></span>
+            <span style="background:#f7b731"></span>
+            <span style="background:#a8e6cf"></span>
+            <span style="background:#a0c4ff"></span>
+            <span style="background:#c9b1ff"></span>
+        </div>
+        <p>made with my hand — for heal</p>
+    </footer>
 
     <script src="comments.js"></script>
     <script>
@@ -126,27 +424,27 @@
             const res = await fetch(`/api/comments/${type}/${id}`);
             const comments = await res.json();
             container.innerHTML = `
-                ${comments.length === 0 ? '<p style="color:#444; font-size:13px; padding:10px 0;">Belum ada komentar.</p>' : ''}
+                ${comments.length === 0 ? '<p style="color:#bbb; font-size:13px; font-weight:700; padding:10px 0;">Belum ada komentar.</p>' : ''}
                 ${comments.map(c => `
                     <div class="comment-card">
                         <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
                         ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
-                        ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-top:8px;" />` : ''}
+                        ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin-top:8px;" />` : ''}
                         ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:8px;"></audio>` : ''}
                     </div>
                 `).join('')}
                 ${token ? `
                     <div style="margin-top:16px;">
-                        <textarea id="ct-${type}-${id}" placeholder="Tulis komentar..." style="width:100%; background:#0f0f0f; border:1px solid #2a2a2a; border-radius:8px; padding:10px; color:#fff; font-size:14px; outline:none; resize:none; min-height:60px; font-family:'Segoe UI',sans-serif;"></textarea>
+                        <textarea id="ct-${type}-${id}" class="comment-textarea" placeholder="Tulis komentar..."></textarea>
                         <div style="display:flex; gap:8px; margin-top:8px; align-items:center; flex-wrap:wrap;">
-                            <label style="color:#555; font-size:12px; cursor:pointer;">📷 <input type="file" id="ci-${type}-${id}" accept="image/*" style="display:none;"> Foto</label>
-                            <label style="color:#555; font-size:12px; cursor:pointer;">📁 <input type="file" id="ca-${type}-${id}" accept="audio/mp4,audio/m4a,audio/webm,audio/*" style="display:none;"> Voice</label>
-                            <button onclick="recordInline('${type}', ${id})" id="rec-${type}-${id}" style="background:transparent; border:1px solid #333; border-radius:6px; padding:5px 12px; color:#aaa; font-size:12px; cursor:pointer;">🎙️ voice</button>
+                            <label class="comment-file-label">📷 <input type="file" id="ci-${type}-${id}" accept="image/*" style="display:none;"> Foto</label>
+                            <label class="comment-file-label">📁 <input type="file" id="ca-${type}-${id}" accept="audio/mp4,audio/m4a,audio/webm,audio/*" style="display:none;"> Voice</label>
+                            <button onclick="recordInline('${type}', ${id})" id="rec-${type}-${id}" class="comment-rec-btn">🎙️ voice</button>
                             <audio id="ra-${type}-${id}" style="display:none; width:100%; margin-top:6px;" controls></audio>
-                            <button onclick="postComment('${type}', ${id}, this)" style="background:#fff; color:#000; border:none; border-radius:6px; padding:6px 16px; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto;">Kirim</button>
+                            <button onclick="postComment('${type}', ${id}, this)" class="comment-send-btn">Kirim</button>
                         </div>
                     </div>
-                ` : '<p style="color:#555; font-size:13px; margin-top:12px;"><a href="login.html" style="color:#aaa;">Masuk</a> untuk komentar.</p>'}
+                ` : '<p style="color:#bbb; font-size:13px; font-weight:700; margin-top:12px;"><a href="login.html" style="color:#2d9e6b;">Masuk</a> untuk komentar.</p>'}
             `;
         }
 
@@ -156,15 +454,12 @@
             const audioFile = document.getElementById(`ca-${type}-${id}`)?.files[0];
             const key = `${type}-${id}`;
             const recBlob = recBlobs[key];
-    
             if (!text && !imageFile && !audioFile && !recBlob) return;
-    
             const formData = new FormData();
             if (text) formData.append('text', text);
             if (imageFile) formData.append('image', imageFile);
             if (audioFile) formData.append('audio', audioFile);
             if (recBlob) formData.append('audio', recBlob.blob, `voice.${recBlob.ext}`);
-    
             btn.textContent = '...';
             const res = await fetch(`/api/comments/${type}/${id}`, {
                 method: 'POST',
@@ -186,34 +481,34 @@
             const btn = document.getElementById(`rec-${type}-${id}`);
             const key = `${type}-${id}`;
             if (!recorders[key] || recorders[key].state === 'inactive') {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
-                                MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-                recorders[key] = new MediaRecorder(stream, { mimeType });
-                const chunks = [];
-                recorders[key].ondataavailable = e => chunks.push(e.data);
-                recorders[key].onstop = () => {
-                    recBlobs[key] = { blob: new Blob(chunks, { type: mimeType }), ext: mimeType.includes('mp4') ? 'mp4' : mimeType.includes('webm') ? 'webm' : 'ogg' };
-                    const audio = document.getElementById(`ra-${type}-${id}`);
-                    audio.src = URL.createObjectURL(recBlobs[key].blob);
-                    audio.style.display = 'block';
-                    stream.getTracks().forEach(t => t.stop());
-                };
-                recorders[key].start();
-                btn.textContent = '⏹️ Stop';
-                btn.style.color = '#ff6b6b';
-                btn.style.borderColor = '#ff6b6b';
-            } catch {
-                alert('Izin mikrofon ditolak!');
-            }    
-        } else {
-            recorders[key].stop();
-            btn.textContent = '🎙️ voice';
-            btn.style.color = '#aaa';
-            btn.style.borderColor = '#333';
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' :
+                                    MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+                    recorders[key] = new MediaRecorder(stream, { mimeType });
+                    const chunks = [];
+                    recorders[key].ondataavailable = e => chunks.push(e.data);
+                    recorders[key].onstop = () => {
+                        recBlobs[key] = { blob: new Blob(chunks, { type: mimeType }), ext: mimeType.includes('mp4') ? 'mp4' : mimeType.includes('webm') ? 'webm' : 'ogg' };
+                        const audio = document.getElementById(`ra-${type}-${id}`);
+                        audio.src = URL.createObjectURL(recBlobs[key].blob);
+                        audio.style.display = 'block';
+                        stream.getTracks().forEach(t => t.stop());
+                    };
+                    recorders[key].start();
+                    btn.textContent = '⏹️ Stop';
+                    btn.style.color = '#e05060';
+                    btn.style.borderColor = '#ffc0cc';
+                } catch {
+                    alert('Izin mikrofon ditolak!');
+                }
+            } else {
+                recorders[key].stop();
+                btn.textContent = '🎙️ voice';
+                btn.style.color = '#bbb';
+                btn.style.borderColor = '#e8e0f0';
+            }
         }
-}
 
         async function addTIL() {
             const content = document.getElementById('tilInput').value.trim();
@@ -226,7 +521,7 @@
             if (res.ok) {
                 document.getElementById('tilInput').value = '';
                 const successMsg = document.getElementById('successMsg');
-                successMsg.textContent = 'Tersimpan! ✨';
+                successMsg.textContent = '✅ Tersimpan!';
                 successMsg.style.display = 'block';
                 setTimeout(() => successMsg.style.display = 'none', 2000);
                 loadTIL();

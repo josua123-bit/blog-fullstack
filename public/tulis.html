@@ -7,70 +7,317 @@
     <link rel="apple-touch-icon" href="/icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>Tulis Artikel</title>
+    <title>Tulis Artikel — for heal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; min-height: 100vh; opacity: 0; animation: fadeIn 0.6s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 60px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
-        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        nav a:hover { color: #fff; }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; width: 100%; }
-        h1 { font-size: 28px; color: #fff; font-weight: 600; margin-bottom: 8px; }
-        .subtitle { color: #555; font-size: 14px; margin-bottom: 40px; }
-        label { display: block; font-size: 13px; color: #777; margin-bottom: 6px; margin-top: 20px; }
-        input[type="text"], select, textarea { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 14px; color: #fff; font-size: 15px; outline: none; transition: border 0.2s; font-family: 'Segoe UI', sans-serif; }
-        input[type="file"] { width: 100%; background: #161616; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #aaa; font-size: 14px; outline: none; cursor: pointer; }
-        input:focus, select:focus, textarea:focus { border-color: #555; }
-        select option { background: #161616; }
-        textarea { resize: vertical; min-height: 280px; line-height: 1.7; }
-        #preview { display: none; width: 100%; border-radius: 8px; margin-top: 10px; max-height: 200px; object-fit: cover; }
-        .actions { display: flex; gap: 12px; margin-top: 28px; }
-        .submit-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 13px 28px; font-size: 15px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
-        .submit-btn:hover { opacity: 0.85; }
-        .cancel-btn { background: transparent; color: #aaa; border: 1px solid #333; border-radius: 8px; padding: 13px 28px; font-size: 15px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; }
-        .cancel-btn:hover { border-color: #fff; color: #fff; }
-        .error { color: #ff6b6b; font-size: 13px; margin-top: 12px; display: none; }
-        .success { color: #6bffb8; font-size: 13px; margin-top: 12px; display: none; }
-        .char-count { font-size: 12px; color: #444; margin-top: 6px; text-align: right; }
+
+        body {
+            background: #fff;
+            color: #2d2d2d;
+            font-family: 'Nunito', 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0ece8;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav .logo {
+            font-size: 19px;
+            font-weight: 800;
+            color: #2d2d2d;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        nav .back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #888;
+            text-decoration: none;
+            border: 1.5px solid #ddd;
+            border-radius: 20px;
+            padding: 7px 16px;
+            transition: all 0.2s;
+        }
+        nav .back:hover { border-color: #999; color: #444; }
+
+        /* PAGE HEADER */
+        .page-header {
+            background:
+                radial-gradient(ellipse 55% 60% at 5% 0%, #fff3e0 0%, transparent 65%),
+                radial-gradient(ellipse 45% 50% at 95% 0%, #fce4ec 0%, transparent 65%),
+                radial-gradient(ellipse 40% 40% at 50% 100%, #e8eaf6 0%, transparent 65%),
+                #fafafa;
+            padding: 44px 24px 40px;
+            text-align: center;
+            border-bottom: 1px solid #f0ece8;
+        }
+        .page-header h1 {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #f4845f 0%, #f7b731 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+            opacity: 0;
+            animation: fadeUp 0.6s ease 0.2s forwards;
+        }
+        .page-header p {
+            color: #aaa;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0;
+            animation: fadeUp 0.6s ease 0.35s forwards;
+        }
+
+        /* FORM */
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 44px 24px 80px;
+            width: 100%;
+            flex: 1;
+        }
+
+        .form-group { margin-bottom: 22px; }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 8px;
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 14px;
+            padding: 13px 16px;
+            color: #2d2d2d;
+            font-size: 15px;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: #f4845f;
+            box-shadow: 0 0 0 4px rgba(244,132,95,0.08);
+            background: #fff;
+        }
+        input[type="text"]::placeholder,
+        textarea::placeholder { color: #ccc; font-weight: 500; }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            cursor: pointer;
+        }
+        select option { background: #fff; color: #2d2d2d; font-weight: 600; }
+
+        textarea { resize: vertical; min-height: 280px; line-height: 1.8; }
+
+        /* file upload */
+        .file-upload-wrap {
+            position: relative;
+            width: 100%;
+        }
+        input[type="file"] {
+            width: 100%;
+            background: #fafafa;
+            border: 2px dashed #e8e0f0;
+            border-radius: 14px;
+            padding: 16px;
+            color: #aaa;
+            font-size: 13px;
+            font-weight: 600;
+            outline: none;
+            cursor: pointer;
+            font-family: 'Nunito', sans-serif;
+            transition: border-color 0.2s;
+        }
+        input[type="file"]:hover { border-color: #c4a8f0; }
+
+        #preview {
+            display: none;
+            width: 100%;
+            border-radius: 14px;
+            margin-top: 12px;
+            max-height: 220px;
+            object-fit: cover;
+            border: 2px solid #f0ece8;
+        }
+
+        .char-count {
+            font-size: 12px;
+            font-weight: 700;
+            color: #ddd;
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* ACTIONS */
+        .actions { display: flex; gap: 12px; margin-top: 32px; }
+
+        .submit-btn {
+            background: linear-gradient(90deg, #f4845f, #f7b731);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 13px 32px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            font-family: 'Nunito', sans-serif;
+            letter-spacing: 0.3px;
+        }
+        .submit-btn:hover { opacity: 0.88; transform: translateY(-2px); }
+
+        .cancel-btn {
+            background: transparent;
+            color: #aaa;
+            border: 2px solid #eee;
+            border-radius: 30px;
+            padding: 13px 28px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .cancel-btn:hover { border-color: #ccc; color: #666; }
+
+        /* messages */
+        .error {
+            color: #e05060;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 12px;
+            display: none;
+            background: #fff0f2;
+            border: 1.5px solid #ffc0cc;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+        .success {
+            color: #2d9e6b;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 12px;
+            display: none;
+            background: #f0fdf4;
+            border: 1.5px solid #90ddb8;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
+
+        @media (max-width: 600px) {
+            nav { padding: 14px 16px; }
+            .page-header { padding: 32px 16px 28px; }
+            .page-header h1 { font-size: 26px; }
+            .container { padding: 28px 16px 60px; }
+            .actions { flex-direction: column; }
+            .submit-btn, .cancel-btn { justify-content: center; text-align: center; }
+        }
     </style>
 </head>
 <body>
+
     <nav>
-        <a href="index.html" class="logo">apa ini dawg</a>
-        <a href="index.html">← Kembali</a>
+        <a href="index.html" class="logo">
+            <svg width="28" height="28" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M100 148 C80 132,56 116,56 92 C56 75,69 64,82 64 C89 64,96 68,100 74 C104 68,111 64,118 64 C131 64,144 75,144 92 C144 116,120 132,100 148Z" stroke-width="1.4" opacity="0.9"/>
+                    <path d="M100 138 C82 123,64 109,64 90 C64 76,75 67,86 67 C92 67,98 71,100 77 C102 71,108 67,114 67 C125 67,136 76,136 90 C136 109,118 123,100 138Z" stroke-width="1.2" opacity="0.65"/>
+                </g>
+            </svg>
+            for heal
+        </a>
+        <a href="index.html" class="back">← Kembali</a>
     </nav>
 
+    <div class="page-header">
+        <h1>✏️ Tulis Artikel</h1>
+        <p>Bagikan cerita, opini, atau refleksimu.</p>
+    </div>
+
     <div class="container">
-        <h1>Tulis Artikel</h1>
-        <p class="subtitle">Bagikan cerita, opini, atau refleksimu.</p>
+        <div class="form-group">
+            <label>Judul Artikel</label>
+            <input type="text" id="title" placeholder="Judul yang menarik..." maxlength="100" />
+        </div>
 
-        <label>Judul Artikel</label>
-        <input type="text" id="title" placeholder="Judul yang menarik..." maxlength="100" />
+        <div class="form-group">
+            <label>Kategori</label>
+            <select id="tag">
+                <option value="Refleksi">Refleksi</option>
+                <option value="Opini">Opini</option>
+                <option value="Cerita">Cerita</option>
+                <option value="Lifestyle">Lifestyle</option>
+                <option value="Lainnya">Lainnya</option>
+            </select>
+        </div>
 
-        <label>Kategori</label>
-        <select id="tag">
-            <option value="Refleksi">Refleksi</option>
-            <option value="Opini">Opini</option>
-            <option value="Cerita">Cerita</option>
-            <option value="Lifestyle">Lifestyle</option>
-            <option value="Lainnya">Lainnya</option>
-        </select>
+        <div class="form-group">
+            <label>Foto Cover (opsional)</label>
+            <div class="file-upload-wrap">
+                <input type="file" id="coverImage" accept="image/*" onchange="previewImage()" />
+            </div>
+            <img id="preview" />
+        </div>
 
-        <label>Foto Cover (opsional)</label>
-        <input type="file" id="coverImage" accept="image/*" onchange="previewImage()" />
-        <img id="preview" />
-
-        <label>Isi Artikel</label>
-        <textarea id="content" placeholder="Mulai menulis di sini..." oninput="updateCount()"></textarea>
-        <p class="char-count"><span id="charCount">0</span> karakter</p>
+        <div class="form-group">
+            <label>Isi Artikel</label>
+            <textarea id="content" placeholder="Mulai menulis di sini..." oninput="updateCount()"></textarea>
+            <p class="char-count"><span id="charCount">0</span> karakter</p>
+        </div>
 
         <p class="error" id="errorMsg"></p>
         <p class="success" id="successMsg"></p>
 
         <div class="actions">
-            <button class="submit-btn" onclick="publish()">Publikasikan</button>
+            <button class="submit-btn" onclick="publish()">🚀 Publikasikan</button>
             <a href="index.html" class="cancel-btn">Batal</a>
         </div>
     </div>
@@ -112,11 +359,6 @@
                 errorMsg.style.display = 'block';
                 return;
             }
-            if (content.length < 1) {
-                errorMsg.textContent = 'Isi artikel minimal 1 karakter!';
-                errorMsg.style.display = 'block';
-                return;
-            }
 
             try {
                 let imageUrl = null;
@@ -146,7 +388,7 @@
                     errorMsg.style.display = 'block';
                     return;
                 }
-                successMsg.textContent = 'Artikel berhasil dipublikasikan!';
+                successMsg.textContent = '✅ Artikel berhasil dipublikasikan!';
                 successMsg.style.display = 'block';
                 setTimeout(() => location.href = 'index.html', 1500);
             } catch {
