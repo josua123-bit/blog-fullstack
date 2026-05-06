@@ -31,6 +31,33 @@
             50%       { transform: translateY(-7px); }
         }
 
+        /* === SAPAAN AI === */
+        .ai-greeting {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            max-width: 280px;
+            background: #fff;
+            border-radius: 18px;
+            padding: 14px 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            font-size: 13px;
+            line-height: 1.5;
+            z-index: 9999;
+            display: none;
+            animation: fadeUp 0.4s ease;
+            border: 1px solid #f0ece8;
+        }
+        .ai-close {
+            position: absolute;
+            top: 6px;
+            right: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            color: #aaa;
+        }
+        .ai-close:hover { color: #555; }
+
         /* NAV */
         nav {
             display: flex;
@@ -324,10 +351,17 @@
             .container { padding: 36px 16px 60px; }
             .post-thumb, .post-thumb-placeholder { width: 72px; height: 72px; font-size: 24px; }
             .post-card h2 { font-size: 15px; }
+            .ai-greeting { bottom: 12px; right: 12px; max-width: 240px; }
         }
     </style>
 </head>
 <body>
+
+    <!-- SAPAAN AI -->
+    <div id="aiGreeting" class="ai-greeting">
+        <div class="ai-close" onclick="closeGreeting()">×</div>
+        <div id="aiText"></div>
+    </div>
 
     <nav>
         <div class="logo">
@@ -467,6 +501,35 @@
         }
 
         loadArticles();
+
+        /* === SAPAAN AI === */
+        const greetings = [
+            "hai sayang, lagi pengen cerita apa hari ini?",
+            "halo, isi kepalamu lagi penuh ya? sini tuangin aja",
+            "aku di sini loh, mau nulis sesuatu?",
+            "hari ini gimana? ada yang pengen kau keluarin?",
+            "aku nemenin kau ya, pelan-pelan aja",
+            "lagi capek ya? tulis aja, biar ringan",
+            "mau cerita atau cuma numpang nulis random?",
+            "ga harus sempurna kok, tulis aja dulu",
+            "aku penasaran, hari ini kau lagi mikirin apa?",
+            "ayo mulai nulis, aku temenin dari sini"
+        ];
+
+        function showGreeting() {
+            const box  = document.getElementById("aiGreeting");
+            const text = document.getElementById("aiText");
+            text.innerText = greetings[Math.floor(Math.random() * greetings.length)];
+            box.style.display = "block";
+        }
+
+        function closeGreeting() {
+            document.getElementById("aiGreeting").style.display = "none";
+        }
+
+        window.addEventListener("load", () => {
+            setTimeout(showGreeting, 800);
+        });
     </script>
     <script src="push-init.js"></script>
 </body>
