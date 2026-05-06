@@ -425,14 +425,19 @@
             const comments = await res.json();
             container.innerHTML = `
                 ${comments.length === 0 ? '<p style="color:#bbb; font-size:13px; font-weight:700; padding:10px 0;">Belum ada komentar.</p>' : ''}
-                ${comments.map(c => `
-                    <div class="comment-card">
-                        <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                ${comments.map(c => {
+                    const canDelete = token && (c.author === localStorage.getItem('username') || localStorage.getItem('username') === 'arekujo001');
+                    return `
+                    <div class="comment-card" id="comment-${c.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                            ${canDelete ? `<button onclick="deleteCommentInline(${c.id}, '${type}', ${id})" style="background:transparent; border:none; color:#bbb; font-size:13px; cursor:pointer; transition:color 0.2s;" onmouseover="this.style.color='#e05060'" onmouseout="this.style.color='#bbb'">🗑</button>` : ''}
+                        </div>
                         ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
                         ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin-top:8px;" />` : ''}
                         ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:8px;"></audio>` : ''}
                     </div>
-                `).join('')}
+                `}).join('')}
                 ${token ? `
                     <div style="margin-top:16px;">
                         <textarea id="ct-${type}-${id}" class="comment-textarea" placeholder="Tulis komentar..."></textarea>
@@ -537,6 +542,20 @@
         document.getElementById('tilInput').addEventListener('keydown', e => {
             if (e.ctrlKey && e.key === 'Enter') addTIL();
         });
+
+        async function deleteCommentInline(commentId, type, id) {
+            if (!confirm('Hapus komentar ini?')) return;
+            const res = await fetch(`/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (res.ok) {
+                const container = document.getElementById(`comments-${type}-${id}`);
+                loadCommentsInto(type, id, container);
+            } else {
+                alert('Gagal menghapus.');
+            }
+        }
 
         loadTIL();
     </script>
