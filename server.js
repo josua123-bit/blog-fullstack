@@ -271,7 +271,10 @@ app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res)
 app.get('/api/articles', async (req, res) => {
     const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const result = await Promise.all(articles.rows.map(async a => {
-        const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [a.id]);
+        const comments = await pool.query(
+    'SELECT * FROM comments WHERE (article_id = $1 OR (target_type = $2 AND target_id = $1)) AND deleted_at IS NULL ORDER BY created_at ASC',
+    [a.id, 'article']
+);
         const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [a.id]);
         return { ...a, comments: comments.rows, likes: parseInt(likes.rows[0].count) };
     }));
@@ -300,7 +303,10 @@ app.post('/api/articles', authMiddleware, async (req, res) => {
 app.get('/api/articles/:id', async (req, res) => {
     const article = await pool.query('SELECT * FROM articles WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
-    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [req.params.id]);
+    const comments = await pool.query(
+    'SELECT * FROM comments WHERE (article_id = $1 OR (target_type = $2 AND target_id = $1)) AND deleted_at IS NULL ORDER BY created_at ASC',
+    [req.params.id, 'article']
+);
     const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [req.params.id]);
     res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
 });
@@ -556,10 +562,9 @@ app.get('/api/admin/all', adminMiddleware, async (req, res) => {
         UNION ALL
         SELECT 'til' as type, id, content as preview, content, username, deleted_at, deleted_by FROM til WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'voicenote' as type, id, title as preview, url as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
-        ORDER BY deleted_at DESC
+         SELECT 'voicenote' as type, id, title as preview, url as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
         UNION ALL
-        SELECT 'voicenote' as type, id, title as preview, url as content, username, deleted_at, deleted_by FROM voice_notes WHERE deleted_at IS NOT NULL
+        SELECT 'komentar' as type, id, COALESCE(text, '(foto/audio)') as preview, COALESCE(text, '') as content, author as username, deleted_at, deleted_by FROM comments WHERE deleted_at IS NOT NULL
         ORDER BY deleted_at DESC
     `);
     res.json({
