@@ -9,6 +9,8 @@ async function loadComments(type, id) {
 
 function renderComments(comments, type, id) {
     const token = localStorage.getItem('token');
+    const currentUser = localStorage.getItem('username');
+    const isAdmin = currentUser === 'arekujo001';
     const container = document.getElementById('commentSection');
     if (!container) return;
 
@@ -18,14 +20,19 @@ function renderComments(comments, type, id) {
             <div id="commentList">
                 ${comments.length === 0 
                     ? '<p style="color:#444; font-size:14px; padding:20px 0;">Belum ada komentar.</p>'
-                    : comments.map(c => `
-                        <div class="comment-card">
-                            <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                    : comments.map(c => {
+                        const canDelete = currentUser && (c.author === currentUser || isAdmin);
+                        return `
+                        <div class="comment-card" id="comment-${c.id}">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
+                                ${canDelete ? `<button onclick="deleteComment(${c.id}, '${type}', '${id}')" style="background:transparent; border:none; color:#555; font-size:13px; cursor:pointer; padding:2px 6px; transition:color 0.2s;" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='#555'">🗑</button>` : ''}
+                            </div>
                             ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
                             ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-top:10px;" />` : ''}
                             ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:10px;"></audio>` : ''}
                         </div>
-                    `).join('')
+                    `}).join('')
                 }
             </div>
             ${token ? `
@@ -51,6 +58,25 @@ function renderComments(comments, type, id) {
             ` : '<p style="color:#555; font-size:14px; margin-top:20px;"><a href="login.html" style="color:#aaa;">Masuk</a> untuk berkomentar.</p>'}
         </div>
     `;
+}
+
+async function deleteComment(commentId, type, id) {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    if (!confirm('Hapus komentar ini?')) return;
+    try {
+        const res = await fetch(`/api/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) loadComments(type, id);
+        else {
+            const data = await res.json();
+            alert(data.message || 'Gagal menghapus.');
+        }
+    } catch {
+        alert('Gagal terhubung ke server.');
+    }
 }
 
 function previewFile(input, previewId) {
