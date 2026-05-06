@@ -154,11 +154,17 @@
             const text = document.getElementById(`ct-${type}-${id}`)?.value.trim();
             const imageFile = document.getElementById(`ci-${type}-${id}`)?.files[0];
             const audioFile = document.getElementById(`ca-${type}-${id}`)?.files[0];
-            if (!text && !imageFile && !audioFile) return;
+            const key = `${type}-${id}`;
+            const recBlob = recBlobs[key];
+    
+            if (!text && !imageFile && !audioFile && !recBlob) return;
+    
             const formData = new FormData();
             if (text) formData.append('text', text);
             if (imageFile) formData.append('image', imageFile);
             if (audioFile) formData.append('audio', audioFile);
+            if (recBlob) formData.append('audio', recBlob.blob, `voice.${recBlob.ext}`);
+    
             btn.textContent = '...';
             const res = await fetch(`/api/comments/${type}/${id}`, {
                 method: 'POST',
@@ -167,7 +173,10 @@
             });
             if (res.ok) {
                 const container = document.getElementById(`comments-${type}-${id}`);
+                delete recBlobs[key];
                 loadCommentsInto(type, id, container);
+            } else {
+                btn.textContent = 'Kirim';
             }
         }
 
