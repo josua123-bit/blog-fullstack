@@ -7,54 +7,261 @@
     <link rel="apple-touch-icon" href="/icon.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>Voice Note</title>
+    <title>Voice Note — for heal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background-color: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; opacity: 0; animation: fadeIn 0.6s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 40px; border-bottom: 1px solid #222; }
-        nav .logo { font-size: 20px; font-weight: 600; color: #fff; text-decoration: none; }
-        nav a { color: #aaa; text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        nav a:hover { color: #fff; }
-        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px; }
+
+        body {
+            background:
+                radial-gradient(ellipse 55% 45% at 8%  12%, #fff3e0 0%, transparent 70%),
+                radial-gradient(ellipse 45% 40% at 92% 10%, #e8f5e9 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 50% 90%, #e8eaf6 0%, transparent 70%),
+                radial-gradient(ellipse 40% 35% at 90% 88%, #fce4ec 0%, transparent 70%),
+                #fafafa;
+            color: #2d2d2d;
+            font-family: 'Nunito', 'Segoe UI', sans-serif;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            background: rgba(255,255,255,0.80);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0ece8;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        nav .logo {
+            font-size: 19px;
+            font-weight: 800;
+            color: #2d2d2d;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        nav .back-link {
+            font-size: 14px;
+            font-weight: 700;
+            color: #bbb;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        nav .back-link:hover { color: #b388ff; }
+
+        /* CONTAINER */
+        .container { max-width: 720px; margin: 0 auto; padding: 60px 20px 80px; }
+
         .header { margin-bottom: 40px; }
-        .header h1 { font-size: 32px; color: #fff; font-weight: 600; margin-bottom: 8px; }
-        .header p { color: #555; font-size: 15px; }
-        .recorder { background: #161616; border: 1px solid #222; border-radius: 16px; padding: 40px; text-align: center; margin-bottom: 40px; }
-        .record-btn { width: 80px; height: 80px; border-radius: 50%; border: none; cursor: pointer; font-size: 32px; transition: all 0.3s; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-        .record-btn.idle { background: #ff6b6b22; border: 2px solid #ff6b6b; color: #ff6b6b; }
-        .record-btn.recording { background: #ff6b6b; border: 2px solid #ff6b6b; color: #fff; animation: pulse 1s infinite; }
-        .record-status { font-size: 14px; color: #555; margin-bottom: 16px; }
-        .record-status.active { color: #ff6b6b; }
-        .timer { font-size: 28px; color: #fff; font-weight: 300; letter-spacing: 4px; margin-bottom: 20px; display: none; }
+        .header h1 {
+            font-size: 32px;
+            font-weight: 900;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        .header p { color: #bbb; font-size: 15px; font-weight: 600; }
+
+        /* RECORDER CARD */
+        .recorder {
+            background: rgba(255,255,255,0.92);
+            border: 2px solid #f0ece8;
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+        }
+
+        .record-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 32px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .record-btn.idle {
+            background: #fff0f2;
+            border: 2px solid #ffb3c1;
+            color: #e05060;
+        }
+        .record-btn.recording {
+            background: #e05060;
+            border: 2px solid #e05060;
+            color: #fff;
+            animation: pulse 1s infinite;
+        }
+
+        .record-status { font-size: 14px; font-weight: 700; color: #ccc; margin-bottom: 16px; }
+        .record-status.active { color: #e05060; }
+
+        .timer {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1a1a1a;
+            letter-spacing: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
         .timer.active { display: block; }
-        .title-input { width: 100%; background: #0f0f0f; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #fff; font-size: 14px; outline: none; margin-bottom: 16px; }
-        .title-input::placeholder { color: #444; }
-        .save-btn { background: #fff; color: #000; border: none; border-radius: 8px; padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; display: none; }
-        .save-btn:hover { opacity: 0.85; }
+
+        .title-input {
+            width: 100%;
+            background: #fafafa;
+            border: 2px solid #f0ece8;
+            border-radius: 14px;
+            padding: 12px 16px;
+            color: #2d2d2d;
+            font-size: 14px;
+            font-weight: 600;
+            outline: none;
+            margin-bottom: 16px;
+            font-family: 'Nunito', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .title-input:focus {
+            border-color: #c9b1ff;
+            box-shadow: 0 0 0 4px rgba(201,177,255,0.12);
+            background: #fff;
+        }
+        .title-input::placeholder { color: #ccc; font-weight: 500; }
+
+        .save-btn {
+            background: linear-gradient(90deg, #b388ff, #c9b1ff);
+            color: #fff;
+            border: none;
+            border-radius: 30px;
+            padding: 12px 28px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            display: none;
+            font-family: 'Nunito', sans-serif;
+        }
+        .save-btn:hover { opacity: 0.88; transform: translateY(-1px); }
         .save-btn.show { display: inline-block; }
-        .audio-preview { width: 100%; margin: 16px 0; display: none; }
+
+        .audio-preview { width: 100%; margin: 16px 0; display: none; border-radius: 10px; }
         .audio-preview.show { display: block; }
-        .notes-list { display: flex; flex-direction: column; gap: 12px; }
-        .note-card { background: #161616; border: 1px solid #1e1e1e; border-radius: 12px; padding: 20px; animation: fadeUp 0.4s ease forwards; transition: border-color 0.2s; }
-        .note-card:hover { border-color: #333; }
-        .note-title { font-size: 15px; color: #fff; font-weight: 500; margin-bottom: 8px; }
-        .note-date { font-size: 12px; color: #444; margin-bottom: 12px; }
-        .note-audio { width: 100%; }
+
+        .saving {
+            color: #2d9e6b;
+            font-size: 13px;
+            font-weight: 700;
+            margin-top: 8px;
+            display: none;
+            background: #f0fdf4;
+            border: 1.5px solid #90ddb8;
+            border-radius: 10px;
+            padding: 8px 14px;
+        }
+
+        /* NOTES LIST */
+        .notes-list { display: flex; flex-direction: column; gap: 14px; }
+
+        .note-card {
+            background: rgba(255,255,255,0.92);
+            border: 2px solid #f0ece8;
+            border-radius: 20px;
+            padding: 22px 24px;
+            animation: fadeUp 0.4s ease forwards;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+        }
+        .note-card:hover {
+            border-color: #e8e0ff;
+            box-shadow: 0 6px 24px rgba(179,136,255,0.10);
+        }
+
+        .note-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+        .note-date {
+            font-size: 12px;
+            font-weight: 700;
+            color: #ccc;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .note-audio { width: 100%; border-radius: 10px; }
+
         .note-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
-        .del-btn { background: transparent; color: #333; border: none; font-size: 13px; cursor: pointer; transition: color 0.2s; }
-        .del-btn:hover { color: #ff6b6b; }
-        .empty { text-align: center; color: #333; padding: 60px 0; font-size: 15px; }
-        .saving { color: #6bffb8; font-size: 13px; margin-top: 8px; display: none; }
-        footer { text-align: center; padding: 40px; border-top: 1px solid #1e1e1e; color: #444; font-size: 13px; margin-top: 60px; }
+        .del-btn {
+            background: transparent;
+            color: #ddd;
+            border: 1.5px solid #f0ece8;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Nunito', sans-serif;
+        }
+        .del-btn:hover { border-color: #ffb3c1; color: #e05060; background: #fff0f2; }
+
+        .empty {
+            text-align: center;
+            color: #ccc;
+            padding: 60px 0;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            border-top: 2px solid #f0ece8;
+            color: #ccc;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 60px;
+        }
+
+        @media (max-width: 600px) {
+            nav { padding: 14px 16px; }
+            .container { padding: 40px 16px 60px; }
+            .recorder { padding: 28px 20px; }
+        }
     </style>
 </head>
 <body>
     <nav>
-        <a href="index.html" class="logo">for heal</a>
-        <a href="index.html">← Kembali</a>
+        <a href="index.html" class="logo">
+            <svg width="28" height="28" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M100 148 C80 132,56 116,56 92 C56 75,69 64,82 64 C89 64,96 68,100 74 C104 68,111 64,118 64 C131 64,144 75,144 92 C144 116,120 132,100 148Z" stroke-width="1.4" opacity="0.9"/>
+                    <path d="M100 138 C82 123,64 109,64 90 C64 76,75 67,86 67 C92 67,98 71,100 77 C102 71,108 67,114 67 C125 67,136 76,136 90 C136 109,118 123,100 138Z" stroke-width="1.2" opacity="0.65"/>
+                </g>
+            </svg>
+            for heal
+        </a>
+        <a href="index.html" class="back-link">← Kembali</a>
     </nav>
 
     <div class="container">
@@ -91,13 +298,12 @@
         let audioBlob = null;
         let usedMimeType = '';
 
-        // Deteksi format audio yang didukung browser (iOS butuh mp4)
         function getSupportedMimeType() {
             const types = ['audio/mp4', 'audio/webm', 'audio/ogg'];
             for (const type of types) {
                 if (MediaRecorder.isTypeSupported(type)) return type;
             }
-            return ''; // fallback ke default browser
+            return '';
         }
 
         function updateTimer() {
@@ -162,7 +368,6 @@
             savingMsg.style.display = 'block';
 
             try {
-                // Tentukan ekstensi file sesuai format
                 const ext = usedMimeType.includes('mp4') ? 'mp4'
                           : usedMimeType.includes('ogg') ? 'ogg'
                           : 'webm';
