@@ -129,6 +129,7 @@ async function setupDB() {
     try { await pool.query(`ALTER TABLE comments ADD COLUMN target_id INTEGER`); } catch {}
     try { await pool.query(`UPDATE comments SET target_type = 'article', target_id = article_id WHERE target_type IS NULL`); } catch {}
     try { await pool.query(`ALTER TABLE comments ADD COLUMN audio_url TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE comments ALTER COLUMN article_id DROP NOT NULL`); } catch {}
 
     console.log('Database siap!');
 }
