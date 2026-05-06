@@ -328,9 +328,12 @@
                 html = `
                     <h2>Komentar</h2>
                     <div class="modal-meta">👤 ${data.author} &nbsp;·&nbsp; ${data.date} &nbsp;·&nbsp; dihapus oleh <strong>${data.deleted_by}</strong></div>
+                    ${data.text ? `<div class="modal-body">${data.text}</div>` : ''}
                     ${data.image_url ? `<img class="modal-img" src="${data.image_url}" />` : ''}
-                    <div class="modal-body">${data.text || '(hanya gambar)'}</div>`;
-            }
+                    ${data.audio_url ? `<audio controls src="${data.audio_url}" style="width:100%;margin-top:12px;"></audio>` : ''}
+                    ${!data.text && !data.image_url && !data.audio_url ? '<div class="modal-body">(kosong)</div>' : ''}
+                `;
+           }
 
             document.getElementById('modalContent').innerHTML = html;
             document.getElementById('modalOverlay').classList.add('open');
