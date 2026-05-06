@@ -76,10 +76,10 @@
                 <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
                     <button onclick="recordArticleComment()" id="recordArticleBtn" style="background:transparent; border:1px solid #333; border-radius:6px; padding:6px 14px; color:#aaa; font-size:13px; cursor:pointer;">🎙️ voice</button>
                     <audio id="articleAudioPreview" style="display:none; width:100%; margin-top:6px;" controls></audio>
-            </div>
-            <p class="error" id="errorMsg"></p>
-            <p class="success" id="successMsg"></p>
-            <button class="comment-btn" onclick="submitComment()">Kirim Komentar</button>
+                </div>
+                <p class="error" id="errorMsg"></p>
+                <p class="success" id="successMsg"></p>
+                <button class="comment-btn" onclick="submitComment()">Kirim Komentar</button>
             </div>
             <p class="login-prompt" id="loginPrompt" style="display:none;">
                 <a href="login.html">Masuk</a> untuk meninggalkan komentar.
@@ -169,6 +169,7 @@
                     <p class="comment-author"><span>${c.author}</span> · ${c.date}</p>
                     ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
                     ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:300px; object-fit:cover; border-radius:8px; margin-top:10px;" />` : ''}
+                    ${c.audio_url ? `<audio controls src="${c.audio_url}" style="width:100%; margin-top:10px;"></audio>` : ''}
                 </div>
             `).join('');
         }
@@ -187,10 +188,13 @@
             }
             try {
                 const formData = new FormData();
-                formData.append('text', text);
+                if (text) formData.append('text', text);
                 if (imageFile) formData.append('image', imageFile);
-                if (articleAudioBlob) formData.append('audio', articleAudioBlob, 'voice.mp4');
-                const res = await fetch(`/api/articles/${articleId}/comments`, {
+                if (articleAudioBlob) {
+                    const ext = articleMimeType.includes('mp4') ? 'mp4' : articleMimeType.includes('webm') ? 'webm' : 'ogg';
+                    formData.append('audio', articleAudioBlob, `voice.${ext}`);
+                }
+                const res = await fetch(`/api/comments/article/${articleId}`, {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token },
                     body: formData
@@ -206,6 +210,9 @@
                 document.getElementById('commentText').value = '';
                 document.getElementById('commentImage').value = '';
                 document.getElementById('commentPreview').style.display = 'none';
+                articleAudioBlob = null;
+                document.getElementById('articleAudioPreview').style.display = 'none';
+                document.getElementById('articleAudioPreview').src = '';
                 renderComments(data.comments);
             } catch {
                 errorMsg.textContent = 'Gagal terhubung ke server.';
@@ -244,19 +251,20 @@
 
         let articleAudioBlob = null;
         let articleRecorder = null;
+        let articleMimeType = '';
 
         async function recordArticleComment() {
             const btn = document.getElementById('recordArticleBtn');
             if (!articleRecorder || articleRecorder.state === 'inactive') {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+                    articleMimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
                                    : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-                    articleRecorder = new MediaRecorder(stream, { mimeType });
+                    articleRecorder = new MediaRecorder(stream, { mimeType: articleMimeType });
                     const chunks = [];
                     articleRecorder.ondataavailable = e => chunks.push(e.data);
                     articleRecorder.onstop = () => {
-                        articleAudioBlob = new Blob(chunks, { type: mimeType });
+                        articleAudioBlob = new Blob(chunks, { type: articleMimeType });
                         const preview = document.getElementById('articleAudioPreview');
                         preview.src = URL.createObjectURL(articleAudioBlob);
                         preview.style.display = 'block';
