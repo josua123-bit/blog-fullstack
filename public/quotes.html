@@ -425,10 +425,13 @@
                     <div class="quote-mark">"</div>
                     <p class="quote-content">${q.content}</p>
                     <div class="quote-footer">
-                        <div class="quote-author">
-                            <span>✍️ ${q.username}</span>
-                            ${q.author ? `· ${q.author}` : ''}
-                        </div>
+                    <div class="quote-author">
+                        <a href="profile.html?u=${q.username}" style="text-decoration:none;color:#999;"
+                            onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='#999'">
+                            ✍️ ${q.username}
+                        </a>
+                        ${q.author ? `· <span>${q.author}</span>` : ''}
+                    </div>
                         <div class="quote-actions">
                             <button class="share-btn" onclick="copyQuote('${q.content.replace(/'/g, "\\'")}', '${(q.author || '').replace(/'/g, "\\'")}')">📋 Salin</button>
                             ${(q.username === currentUser || currentUser === 'arekujo001') ? `<button class="del-btn" onclick="deleteQuote(${q.id})">🗑</button>` : ''}

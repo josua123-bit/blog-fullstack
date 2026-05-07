@@ -393,12 +393,19 @@
                 list.innerHTML = '<p class="empty">Belum ada catatan. Mulai tulis sekarang!</p>';
                 return;
             }
+            const myUsername = localStorage.getItem('username');
             list.innerHTML = data.map(t => `
                 <div class="til-card">
-                    <p class="til-date">📅 ${t.date}</p>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <a href="profile.html?u=${t.username}" style="font-size:12px;font-weight:700;color:#bbb;text-decoration:none;"
+                        onmouseover="this.style.color='#2d9e6b'" onmouseout="this.style.color='#bbb'">
+                        👤 ${t.username}
+                        </a>
+                        <p class="til-date" style="margin-bottom:0;">📅 ${t.date}</p>
+                    </div>
                     <p class="til-content">${t.content}</p>
                     <div class="til-actions">
-                        <button class="del-btn" onclick="deleteTIL(${t.id})">🗑 Hapus</button>
+                        ${t.username === myUsername ? `<button class="del-btn" onclick="deleteTIL(${t.id})">🗑 Hapus</button>` : ''}
                     </div>
                     <div class="comment-section">
                         <button class="comment-toggle" onclick="toggleComments(this, 'til', ${t.id})">💬 Lihat komentar</button>

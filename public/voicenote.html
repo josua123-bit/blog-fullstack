@@ -420,13 +420,21 @@
                 list.innerHTML = '<p class="empty">Belum ada voice note.</p>';
                 return;
             }
+            const myUsername = localStorage.getItem('username');
             list.innerHTML = notes.map(n => `
                 <div class="note-card">
                     <p class="note-title">🎙️ ${n.title}</p>
-                    <p class="note-date">📅 ${n.date}</p>
-                    <audio class="note-audio" controls src="${n.url}"></audio>
-                    <div class="note-actions">
-                        <button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <a href="profile.html?u=${n.username}" style="font-size:12px;font-weight:700;color:#bbb;text-decoration:none;" 
+                        onmouseover="this.style.color='#f4845f'" onmouseout="this.style.color='#bbb'">
+                        👤 ${n.username}
+                        </a>
+                        <p class="note-date" style="margin-bottom:0;">📅 ${n.date}</p>
+                    </div>
+                        <audio class="note-audio" controls src="${n.url}"></audio>
+                        <div class="note-actions">
+                            ${n.username === myUsername ? `<button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>` : ''}
+                        </div>
                     </div>
                 </div>
             `).join('');
