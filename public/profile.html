@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil — for heal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #fafafa;
+            color: #2d2d2d;
+            font-family: 'Nunito', sans-serif;
+            line-height: 1.7;
+            opacity: 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn { to { opacity: 1; } }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0ece8;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav .logo {
+            font-size: 19px;
+            font-weight: 800;
+            color: #2d2d2d;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            text-decoration: none;
+        }
+        .btn {
+            background: #2d2d2d;
+            color: #fff !important;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: opacity 0.2s;
+            font-family: 'Nunito', sans-serif;
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover { opacity: 0.75; }
+        .btn-outline {
+            background: transparent;
+            color: #888 !important;
+            border: 1.5px solid #ddd;
+            padding: 7px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-family: 'Nunito', sans-serif;
+            cursor: pointer;
+        }
+        .btn-outline:hover { border-color: #999; color: #444 !important; }
+
+        /* PROFILE HEADER */
+        .profile-header {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 48px 24px 0;
+            animation: fadeUp 0.5s ease 0.1s both;
+        }
+
+        .profile-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+
+        .avatar-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .avatar {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f4845f, #f7b731);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-edit-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 26px;
+            height: 26px;
+            background: #2d2d2d;
+            border-radius: 50%;
+            border: 2px solid #fafafa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+        }
+
+        .profile-info { flex: 1; min-width: 0; }
+
+        .profile-username {
+            font-size: 24px;
+            font-weight: 900;
+            color: #1a1a1a;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .profile-joined {
+            font-size: 12px;
+            color: #bbb;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .profile-bio {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .profile-bio-empty {
+            font-size: 13px;
+            color: #ccc;
+            font-style: italic;
+            font-weight: 500;
+        }
+
+        .profile-stats {
+            display: flex;
+            gap: 24px;
+            padding: 20px 0;
+            border-top: 1px solid #f0ece8;
+            border-bottom: 1px solid #f0ece8;
+            margin-bottom: 0;
+        }
+
+        .stat-item { text-align: center; }
+        .stat-num {
+            font-size: 22px;
+            font-weight: 900;
+            color: #1a1a1a;
+            display: block;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #aaa;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* EDIT PROFILE BTN */
+        .edit-profile-btn {
+            display: none;
+            margin-top: 16px;
+        }
+
+        /* TABS */
+        .tabs {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            gap: 0;
+            border-bottom: 1px solid #f0ece8;
+            margin-top: 24px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #bbb;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.2s;
+            font-family: 'Nunito', sans-serif;
+            letter-spacing: 0.3px;
+        }
+        .tab-btn.active { color: #2d2d2d; border-bottom-color: #2d2d2d; }
+        .tab-btn:hover:not(.active) { color: #888; }
+
+        /* CONTENT */
+        .tab-content {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 32px 24px 80px;
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ARTICLE CARD */
+        .post-card {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+            padding: 20px 0;
+            border-bottom: 1px solid #f4f0ec;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .post-card:hover { transform: translateX(4px); }
+
+        .post-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 14px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .post-thumb-placeholder {
+            width: 80px;
+            height: 80px;
+            border-radius: 14px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+        }
+        .post-body { flex: 1; min-width: 0; }
+        .post-tag {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 4px;
+        }
+        .tag-refleksi { color: #e05060; }
+        .tag-cerita   { color: #3b9dcf; }
+        .tag-opini    { color: #8059d0; }
+        .tag-lifestyle{ color: #c07020; }
+        .tag-default  { color: #888; }
+
+        .post-card h3 {
+            font-size: 16px;
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        .post-excerpt {
+            color: #aaa;
+            font-size: 13px;
+            font-weight: 500;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .post-meta {
+            font-size: 11px;
+            color: #ccc;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* TIL CARD */
+        .til-card {
+            background: #fff;
+            border: 1px solid #f0ece8;
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            animation: fadeUp 0.4s ease both;
+        }
+        .til-card p {
+            font-size: 14px;
+            color: #444;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+        .til-card .til-date {
+            font-size: 11px;
+            color: #ccc;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+
+        /* QUOTE CARD */
+        .quote-card {
+            background: #fff;
+            border: 1px solid #f0ece8;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 12px;
+            animation: fadeUp 0.4s ease both;
+        }
+        .quote-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d2d2d;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .quote-text::before { content: '"'; color: #f4845f; font-size: 24px; line-height: 0; vertical-align: -6px; margin-right: 2px; }
+        .quote-text::after  { content: '"'; color: #f4845f; font-size: 24px; line-height: 0; vertical-align: -6px; margin-left: 2px; }
+        .quote-author {
+            font-size: 12px;
+            color: #bbb;
+            font-weight: 600;
+        }
+
+        .empty {
+            text-align: center;
+            color: #ccc;
+            padding: 48px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* EDIT MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: #fff;
+            border-radius: 24px;
+            padding: 32px;
+            width: 100%;
+            max-width: 420px;
+            animation: fadeUp 0.3s ease;
+        }
+
+        .modal h2 {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 24px;
+            color: #1a1a1a;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 800;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1.5px solid #eee;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: 'Nunito', sans-serif;
+            color: #2d2d2d;
+            background: #fafafa;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: vertical;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus { border-color: #2d2d2d; background: #fff; }
+
+        .avatar-preview-wrap {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+        .avatar-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: linear-gradient(135deg, #f4845f, #f7b731);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 900;
+            color: #fff;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 8px 16px;
+            border: 1.5px dashed #ddd;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-input-label:hover { border-color: #aaa; color: #555; }
+        #avatarFileInput { display: none; }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+        .modal-actions .btn { flex: 1; text-align: center; }
+
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #2d2d2d;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 999;
+            transition: transform 0.3s ease;
+            white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        @media (max-width: 600px) {
+            nav { padding: 14px 16px; }
+            .profile-header { padding: 32px 16px 0; }
+            .tabs { padding: 0 16px; }
+            .tab-content { padding: 24px 16px 60px; }
+            .profile-top { gap: 16px; }
+            .avatar { width: 72px; height: 72px; font-size: 26px; }
+            .profile-username { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="index.html" class="logo">
+        <svg width="30" height="30" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M100 148 C80 132,56 116,56 92 C56 75,69 64,82 64 C89 64,96 68,100 74 C104 68,111 64,118 64 C131 64,144 75,144 92 C144 116,120 132,100 148Z" stroke-width="1.4" opacity="0.9"/>
+            </g>
+        </svg>
+        for heal
+    </a>
+    <div id="navActions" style="display:flex;gap:8px;align-items:center;"></div>
+</nav>
+
+<!-- PROFILE HEADER -->
+<div class="profile-header" id="profileHeader">
+    <div class="profile-top">
+        <div class="avatar-wrap">
+            <div class="avatar" id="avatarEl"></div>
+            <div class="avatar-edit-btn" id="avatarEditBtn" onclick="openEdit()">✏️</div>
+        </div>
+        <div class="profile-info">
+            <div class="profile-username" id="profileUsername">—</div>
+            <div class="profile-joined" id="profileJoined"></div>
+            <div id="profileBio"></div>
+        </div>
+    </div>
+    <div class="profile-stats">
+        <div class="stat-item">
+            <span class="stat-num" id="statArticles">0</span>
+            <span class="stat-label">Artikel</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-num" id="statTil">0</span>
+            <span class="stat-label">TIL</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-num" id="statQuotes">0</span>
+            <span class="stat-label">Quotes</span>
+        </div>
+    </div>
+    <div class="edit-profile-btn" id="editProfileBtn">
+        <button class="btn-outline" onclick="openEdit()">✏️ Edit Profil</button>
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('articles', this)">Artikel</button>
+    <button class="tab-btn" onclick="switchTab('til', this)">TIL</button>
+    <button class="tab-btn" onclick="switchTab('quotes', this)">Quotes</button>
+</div>
+
+<div class="tab-content">
+    <div class="tab-panel active" id="panel-articles">
+        <p class="empty" id="emptyArticles" style="display:none">Belum ada artikel.</p>
+    </div>
+    <div class="tab-panel" id="panel-til">
+        <p class="empty" id="emptyTil" style="display:none">Belum ada TIL.</p>
+    </div>
+    <div class="tab-panel" id="panel-quotes">
+        <p class="empty" id="emptyQuotes" style="display:none">Belum ada quotes.</p>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <h2>Edit Profil</h2>
+        <div class="form-group">
+            <label>Foto Profil</label>
+            <div class="avatar-preview-wrap">
+                <div class="avatar-preview" id="modalAvatarPreview"></div>
+                <label class="file-input-label" for="avatarFileInput">📷 Ganti foto</label>
+                <input type="file" id="avatarFileInput" accept="image/*" onchange="previewAvatar(this)">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Bio</label>
+            <textarea id="bioInput" rows="3" placeholder="Ceritain sedikit tentang kamu..."></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-outline" onclick="closeEdit()">Batal</button>
+            <button class="btn" onclick="saveProfile()">Simpan</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const token    = localStorage.getItem('token');
+    const myName   = localStorage.getItem('username');
+    const params   = new URLSearchParams(location.search);
+    const username = params.get('u') || myName;
+
+    let profileData = null;
+    let newAvatarFile = null;
+
+    // NAV
+    const navActions = document.getElementById('navActions');
+    if (token) {
+        navActions.innerHTML = `
+            <span style="color:#999;font-size:13px;font-weight:600;">👤 ${myName}</span>
+            <button class="btn" onclick="logout()">Keluar</button>
+        `;
+    } else {
+        navActions.innerHTML = `
+            <a href="login.html" class="btn-outline">Masuk</a>
+            <a href="register.html" class="btn">Daftar</a>
+        `;
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        location.href = 'index.html';
+    }
+
+    const thumbs = [
+        { bg: '#ffd6d6', emoji: '🔎' },
+        { bg: '#d6eeff', emoji: '🐶' },
+        { bg: '#fffbd6', emoji: '👻' },
+        { bg: '#e8d6ff', emoji: '🐾' },
+    ];
+
+    const tagClass = {
+        refleksi: 'tag-refleksi', cerita: 'tag-cerita',
+        opini: 'tag-opini', lifestyle: 'tag-lifestyle'
+    };
+
+    async function loadProfile() {
+        try {
+            const res  = await fetch(`/api/user/${username}`);
+            if (!res.ok) { document.getElementById('profileUsername').textContent = 'User tidak ditemukan'; return; }
+            profileData = await res.json();
+
+            // Username
+            document.getElementById('profileUsername').textContent = profileData.username;
+            document.title = `${profileData.username} — for heal`;
+
+            // Joined
+            const joined = new Date(profileData.created_at);
+            document.getElementById('profileJoined').textContent =
+                'Bergabung ' + joined.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+
+            // Bio
+            const bioEl = document.getElementById('profileBio');
+            bioEl.innerHTML = profileData.bio
+                ? `<p class="profile-bio">${profileData.bio}</p>`
+                : `<p class="profile-bio-empty">belum ada bio</p>`;
+
+            // Avatar
+            renderAvatar(document.getElementById('avatarEl'), profileData);
+
+            // Stats
+            document.getElementById('statArticles').textContent = profileData.articles.length;
+            document.getElementById('statTil').textContent      = profileData.til.length;
+            document.getElementById('statQuotes').textContent   = profileData.quotes.length;
+
+            // Show edit btn if own profile
+            if (token && myName === username) {
+                document.getElementById('editProfileBtn').style.display = 'block';
+                document.getElementById('avatarEditBtn').style.display  = 'flex';
+            }
+
+            // Render content
+            renderArticles(profileData.articles);
+            renderTil(profileData.til);
+            renderQuotes(profileData.quotes);
+
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    function renderAvatar(el, data) {
+        if (data.avatar_url) {
+            el.innerHTML = `<img src="${data.avatar_url}" alt="${data.username}">`;
+        } else {
+            el.textContent = data.username.charAt(0).toUpperCase();
+        }
+    }
+
+    function renderArticles(articles) {
+        const panel = document.getElementById('panel-articles');
+        if (!articles.length) {
+            document.getElementById('emptyArticles').style.display = 'block';
+            return;
+        }
+        panel.innerHTML = articles.map((a, i) => {
+            const key = (a.tag || '').toLowerCase();
+            const cls = tagClass[key] || 'tag-default';
+            const t   = thumbs[i % thumbs.length];
+            const img = a.image_url
+                ? `<img src="${a.image_url}" class="post-thumb">`
+                : `<div class="post-thumb-placeholder" style="background:${t.bg}">${t.emoji}</div>`;
+            return `
+            <div class="post-card" onclick="location.href='artikel.html?id=${a.id}'">
+                ${img}
+                <div class="post-body">
+                    <p class="post-tag ${cls}">${a.tag || 'umum'}</p>
+                    <h3>${a.title}</h3>
+                    <p class="post-excerpt">${a.content.substring(0, 100)}...</p>
+                    <div class="post-meta">📅 ${a.date}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderTil(tils) {
+        const panel = document.getElementById('panel-til');
+        if (!tils.length) {
+            document.getElementById('emptyTil').style.display = 'block';
+            return;
+        }
+        panel.innerHTML = tils.map((t, i) => `
+            <div class="til-card" style="animation-delay:${i*0.08}s">
+                <p>${t.content}</p>
+                <div class="til-date">📅 ${t.date}</div>
+            </div>`).join('');
+    }
+
+    function renderQuotes(quotes) {
+        const panel = document.getElementById('panel-quotes');
+        if (!quotes.length) {
+            document.getElementById('emptyQuotes').style.display = 'block';
+            return;
+        }
+        panel.innerHTML = quotes.map((q, i) => `
+            <div class="quote-card" style="animation-delay:${i*0.08}s">
+                <div class="quote-text">${q.content}</div>
+                ${q.author ? `<div class="quote-author">— ${q.author}</div>` : ''}
+            </div>`).join('');
+    }
+
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    // EDIT PROFILE
+    function openEdit() {
+        document.getElementById('bioInput').value = profileData?.bio || '';
+        const prev = document.getElementById('modalAvatarPreview');
+        if (profileData?.avatar_url) {
+            prev.innerHTML = `<img src="${profileData.avatar_url}">`;
+        } else {
+            prev.textContent = (profileData?.username || '?').charAt(0).toUpperCase();
+            prev.style.background = 'linear-gradient(135deg, #f4845f, #f7b731)';
+        }
+        document.getElementById('editModal').classList.add('open');
+    }
+
+    function closeEdit() {
+        document.getElementById('editModal').classList.remove('open');
+        newAvatarFile = null;
+    }
+
+    function previewAvatar(input) {
+        if (!input.files[0]) return;
+        newAvatarFile = input.files[0];
+        const reader = new FileReader();
+        reader.onload = e => {
+            const prev = document.getElementById('modalAvatarPreview');
+            prev.innerHTML = `<img src="${e.target.result}">`;
+        };
+        reader.readAsDataURL(newAvatarFile);
+    }
+
+    async function saveProfile() {
+        const bio = document.getElementById('bioInput').value.trim();
+        const formData = new FormData();
+        formData.append('bio', bio);
+        if (newAvatarFile) formData.append('avatar', newAvatarFile);
+
+        try {
+            const res = await fetch('/api/user/profile', {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer ' + token },
+                body: formData
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.message || 'Gagal'); return; }
+
+            profileData = { ...profileData, ...data.user };
+
+            // Update UI
+            const bioEl = document.getElementById('profileBio');
+            bioEl.innerHTML = profileData.bio
+                ? `<p class="profile-bio">${profileData.bio}</p>`
+                : `<p class="profile-bio-empty">belum ada bio</p>`;
+            renderAvatar(document.getElementById('avatarEl'), profileData);
+
+            closeEdit();
+            showToast('✅ Profil diupdate!');
+        } catch {
+            showToast('Gagal menyimpan');
+        }
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // Close modal on overlay click
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEdit();
+    });
+
+    loadProfile();
+</script>
+</body>
+</html>

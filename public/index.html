@@ -461,7 +461,8 @@
         if (token) {
             document.getElementById('guestNav').style.display = 'none';
             document.getElementById('userNav').style.display  = 'flex';
-            document.getElementById('usernameDisplay').textContent = '👤 ' + username;
+            document.getElementById('usernameDisplay').innerHTML = 
+                `<a href="profile.html" style="color:#999;font-size:14px;font-weight:600;text-decoration:none;">👤 ${username}</a>`;
             document.getElementById('actionBar').style.display = 'flex';
             if (username === 'arekujo001') {
                 document.getElementById('adminBtn').style.display = 'inline-block';

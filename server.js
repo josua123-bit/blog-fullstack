@@ -130,6 +130,10 @@ async function setupDB() {
     try { await pool.query(`UPDATE comments SET target_type = 'article', target_id = article_id WHERE target_type IS NULL`); } catch {}
     try { await pool.query(`ALTER TABLE comments ADD COLUMN audio_url TEXT`); } catch {}
     try { await pool.query(`ALTER TABLE comments ALTER COLUMN article_id DROP NOT NULL`); } catch {}
+    
+    // Migration profile
+    try { await pool.query(`ALTER TABLE users ADD COLUMN bio TEXT`); } catch {}
+    try { await pool.query(`ALTER TABLE users ADD COLUMN avatar_url TEXT`); } catch {}
 
     console.log('Database siap!');
 }
@@ -193,6 +197,71 @@ app.post('/api/login', async (req, res) => {
     if (!valid) return res.status(400).json({ message: 'Password salah' });
     const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username });
+});
+
+// =================== PROFILE ===================
+app.get('/api/user/:username', async (req, res) => {
+    const { username } = req.params;
+    const user = await pool.query(
+        'SELECT id, username, bio, avatar_url, created_at FROM users WHERE username = $1',
+        [username]
+    );
+    if (!user.rows.length) return res.status(404).json({ message: 'User tidak ditemukan' });
+
+    const articles = await pool.query(
+        'SELECT id, title, tag, content, date, image_url, created_at FROM articles WHERE author = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+        [username]
+    );
+    const til = await pool.query(
+        'SELECT * FROM til WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+        [username]
+    );
+    const quotes = await pool.query(
+        'SELECT * FROM quotes WHERE username = $1 AND deleted_at IS NULL ORDER BY created_at DESC',
+        [username]
+    );
+
+    res.json({
+        ...user.rows[0],
+        articles: articles.rows,
+        til: til.rows,
+        quotes: quotes.rows
+    });
+});
+
+app.put('/api/user/profile', authMiddleware, upload.single('avatar'), async (req, res) => {
+    const { bio } = req.body;
+    let avatarUrl = null;
+
+    if (req.file) {
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream({ folder: 'avatars', resource_type: 'image' }, (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }).end(req.file.buffer);
+        });
+        avatarUrl = result.secure_url;
+    }
+
+    const fields = [];
+    const values = [];
+    let i = 1;
+
+    if (bio !== undefined) { fields.push(`bio = $${i++}`); values.push(bio); }
+    if (avatarUrl) { fields.push(`avatar_url = $${i++}`); values.push(avatarUrl); }
+    if (!fields.length) return res.status(400).json({ message: 'Tidak ada yang diupdate' });
+
+    values.push(req.user.username);
+    await pool.query(
+        `UPDATE users SET ${fields.join(', ')} WHERE username = $${i}`,
+        values
+    );
+
+    const updated = await pool.query(
+        'SELECT id, username, bio, avatar_url, created_at FROM users WHERE username = $1',
+        [req.user.username]
+    );
+    res.json({ message: 'Profil diupdate!', user: updated.rows[0] });
 });
 
 // =================== MIDDLEWARE ===================
