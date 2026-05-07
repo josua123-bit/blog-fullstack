@@ -886,22 +886,27 @@
         });
 
         // 3. Update komentar real-time di index
-        socket.on('new-comment', (data) => {
+        socket.on('new-comment', async (data) => {
             console.log('💬 Komentar baru di artikel:', data.articleId);
     
-            // Update jumlah komentar di card artikel
-            const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
-            if (card) {
-                // Cari span yang ada tulisan "komentar"
-                const metaSpans = card.querySelectorAll('.post-meta span');
-                metaSpans.forEach(span => {
-                    if (span.textContent.includes('komentar')) {
-                        const count = data.allComments ? data.allComments.length : 0;
-                        span.textContent = `💬 ${count} komentar`;
+            // Fetch data artikel terbaru buat update counter
+            try {
+                const res = await fetch(`/api/articles/${data.articleId}`);
+                const article = await res.json();
+        
+                const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
+                if (card) {
+                    const metaSpans = card.querySelectorAll('.post-meta span');
+                    metaSpans.forEach(span => {
+                        if (span.textContent.includes('komentar')) {
+                            span.textContent = `💬 ${article.comments.length} komentar`;
                     }
                 });
             }
-        });
+        } catch(err) {
+            console.error('Gagal update counter komentar:', err);
+        }
+    });
 
         // 4. Lihat user online
         socket.on('online-users', (users) => {
