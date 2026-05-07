@@ -395,7 +395,7 @@
             }
             const myUsername = localStorage.getItem('username');
             list.innerHTML = data.map(t => `
-                <div class="til-card">
+                <div class="til-card" id="til-${t.id}">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                         <a href="profile.html?u=${t.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
                             ${t.avatar_url
@@ -416,6 +416,34 @@
                     </div>
                 </div>
             `).join('');
+        }
+
+        function createTilCard(t) {
+            const myUsername = localStorage.getItem('username');
+            const card = document.createElement('div');
+            card.className = 'til-card';
+            card.id = `til-${t.id}`;
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <a href="profile.html?u=${t.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
+                        ${t.avatar_url
+                            ? `<img src="${t.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+                            : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#2d9e6b,#7ec8c8);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${t.username.charAt(0).toUpperCase()}</span>`
+                        }
+                        ${t.username}
+                    </a>
+                    <p class="til-date" style="margin-bottom:0;">📅 ${t.date}</p>
+                </div>
+                <p class="til-content">${t.content}</p>
+                <div class="til-actions">
+                    ${t.username === myUsername ? `<button class="del-btn" onclick="deleteTIL(${t.id})">🗑 Hapus</button>` : ''}
+                </div>
+                <div class="comment-section">
+                    <button class="comment-toggle" onclick="toggleComments(this, 'til', ${t.id})">💬 Lihat komentar</button>
+                    <div class="comment-inner" id="comments-til-${t.id}"></div>
+                </div>
+            `;
+            return card;
         }
 
         function toggleComments(btn, type, id) {
@@ -491,9 +519,10 @@
                 body: formData
             });
             if (res.ok) {
-                const container = document.getElementById(`comments-${type}-${id}`);
+                btn.textContent = 'Kirim';
+                // Hapus recording blob
                 delete recBlobs[key];
-                loadCommentsInto(type, id, container);
+                // UI akan diupdate via Socket.IO
             } else {
                 btn.textContent = 'Kirim';
             }
@@ -548,14 +577,14 @@
                 successMsg.textContent = '✅ Tersimpan!';
                 successMsg.style.display = 'block';
                 setTimeout(() => successMsg.style.display = 'none', 2000);
-                loadTIL();
+                // TIL baru akan muncul via Socket.IO, nggak perlu loadTIL()
             }
         }
 
         async function deleteTIL(id) {
             if (!confirm('Hapus catatan ini?')) return;
             await fetch(`/api/til/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-            loadTIL();
+            // UI akan diupdate via Socket.IO
         }
 
         document.getElementById('tilInput').addEventListener('keydown', e => {
@@ -568,16 +597,91 @@
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + token }
             });
-            if (res.ok) {
-                const container = document.getElementById(`comments-${type}-${id}`);
-                loadCommentsInto(type, id, container);
-            } else {
-                alert('Gagal menghapus.');
-            }
+            if (!res.ok) alert('Gagal menghapus.');
+            // UI akan diupdate via Socket.IO
         }
 
         loadTIL();
     </script>
     <script src="push-init.js"></script>
+
+    <!-- ===== SOCKET.IO REAL-TIME ===== -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Join room TIL
+        socket.emit('join-content', 'til');
+
+        // Identifikasi user
+        if (token && localStorage.getItem('username')) {
+            socket.emit('user-join', localStorage.getItem('username'));
+        }
+
+        // ===== DENGERIN EVENT REAL-TIME =====
+
+        // 1. TIL baru langsung muncul
+        socket.on('new-til', (data) => {
+            console.log('📓 TIL baru real-time:', data.til.content.substring(0, 30));
+            const list = document.getElementById('tilList');
+            const emptyMsg = list.querySelector('.empty');
+            if (emptyMsg) emptyMsg.remove();
+            
+            const card = createTilCard(data.til);
+            list.insertBefore(card, list.firstChild);
+        });
+
+        // 2. TIL dihapus langsung hilang
+        socket.on('til-deleted', (data) => {
+            console.log('🗑️ TIL dihapus real-time:', data.id);
+            const card = document.getElementById(`til-${data.id}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(20px)';
+                card.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    const list = document.getElementById('tilList');
+                    if (!list.querySelector('.til-card')) {
+                        list.innerHTML = '<p class="empty">Belum ada catatan. Mulai tulis sekarang!</p>';
+                    }
+                }, 300);
+            }
+        });
+
+        // 3. Komentar baru real-time
+        socket.on('new-content-comment', (data) => {
+            if (data.type === 'til') {
+                console.log('💬 Komentar baru di TIL:', data.id);
+                const container = document.getElementById(`comments-til-${data.id}`);
+                if (container && container.classList.contains('open')) {
+                    loadCommentsInto('til', data.id, container);
+                }
+            }
+        });
+
+        // 4. Komentar dihapus real-time
+        socket.on('comment-deleted', (data) => {
+            const el = document.getElementById(`comment-${data.commentId}`);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(-10px)';
+                el.style.transition = 'all 0.3s';
+                setTimeout(() => el.remove(), 300);
+            }
+        });
+
+        // 5. User online
+        socket.on('online-users', (users) => {
+            console.log('👥 Online users:', users);
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            socket.emit('leave-content', 'til');
+        });
+
+        console.log('🔌 Socket.IO real-time siap di til.html');
+    </script>
 </body>
 </html>

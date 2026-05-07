@@ -315,6 +315,31 @@
             return '';
         }
 
+        function createNoteCard(n) {
+            const myUsername = localStorage.getItem('username');
+            const card = document.createElement('div');
+            card.className = 'note-card';
+            card.id = `voicenote-${n.id}`;
+            card.innerHTML = `
+                <p class="note-title">🎙️ ${n.title}</p>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                   <a href="profile.html?u=${n.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
+                        ${n.avatar_url
+                        ? `<img src="${n.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+                        : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f4845f,#f7b731);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${n.username.charAt(0).toUpperCase()}</span>`
+                    }
+                    ${n.username}
+                </a>
+                    <p class="note-date" style="margin-bottom:0;">📅 ${n.date}</p>
+                </div>
+                <audio class="note-audio" controls src="${n.url}"></audio>
+                <div class="note-actions">
+                    ${n.username === myUsername ? `<button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>` : ''}
+                </div>
+            `;
+            return card;
+        }
+
         function updateTimer() {
             seconds++;
             const m = String(Math.floor(seconds / 60)).padStart(2, '0');
@@ -402,7 +427,7 @@
                     document.getElementById('saveBtn').classList.remove('show');
                     savingMsg.style.display = 'none';
                     audioBlob = null;
-                    loadNotes();
+                    // Voice note baru muncul via Socket.IO
                 }
             } catch {
                 savingMsg.style.display = 'none';
@@ -420,27 +445,10 @@
                 list.innerHTML = '<p class="empty">Belum ada voice note.</p>';
                 return;
             }
-            const myUsername = localStorage.getItem('username');
-            list.innerHTML = notes.map(n => `
-                <div class="note-card">
-                    <p class="note-title">🎙️ ${n.title}</p>
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                       <a href="profile.html?u=${n.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
-                            ${n.avatar_url
-                            ? `<img src="${n.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
-                            : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f4845f,#f7b731);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${n.username.charAt(0).toUpperCase()}</span>`
-                        }
-                        ${n.username}
-                    </a>
-                        <p class="note-date" style="margin-bottom:0;">📅 ${n.date}</p>
-                    </div>
-                        <audio class="note-audio" controls src="${n.url}"></audio>
-                        <div class="note-actions">
-                            ${n.username === myUsername ? `<button class="del-btn" onclick="deleteNote(${n.id})">🗑 Hapus</button>` : ''}
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            list.innerHTML = '';
+            notes.forEach(n => {
+                list.appendChild(createNoteCard(n));
+            });
         }
 
         async function deleteNote(id) {
@@ -449,11 +457,66 @@
                 method: 'DELETE',
                 headers: { 'Authorization': 'Bearer ' + token }
             });
-            loadNotes();
+            // UI diupdate via Socket.IO
         }
 
         loadNotes();
     </script>
     <script src="push-init.js"></script>
+
+    <!-- ===== SOCKET.IO REAL-TIME ===== -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Join room voicenotes
+        socket.emit('join-content', 'voicenotes');
+
+        // Identifikasi user
+        if (token && localStorage.getItem('username')) {
+            socket.emit('user-join', localStorage.getItem('username'));
+        }
+
+        // 1. Voice note baru real-time
+        socket.on('new-voicenote', (data) => {
+            console.log('🎙️ Voice note baru real-time');
+            const list = document.getElementById('notesList');
+            const emptyMsg = list.querySelector('.empty');
+            if (emptyMsg) emptyMsg.remove();
+            
+            const card = createNoteCard(data.voiceNote);
+            list.insertBefore(card, list.firstChild);
+        });
+
+        // 2. Voice note dihapus real-time
+        socket.on('voicenote-deleted', (data) => {
+            console.log('🗑️ Voice note dihapus real-time');
+            const card = document.getElementById(`voicenote-${data.id}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(20px)';
+                card.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    const list = document.getElementById('notesList');
+                    if (!list.querySelector('.note-card')) {
+                        list.innerHTML = '<p class="empty">Belum ada voice note.</p>';
+                    }
+                }, 300);
+            }
+        });
+
+        // 3. User online
+        socket.on('online-users', (users) => {
+            console.log('👥 Online users:', users);
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            socket.emit('leave-content', 'voicenotes');
+        });
+
+        console.log('🔌 Socket.IO real-time siap di voicenote.html');
+    </script>
 </body>
 </html>

@@ -412,6 +412,37 @@
         const recorders = {};
         const recBlobs = {};
 
+        function createQuoteCard(q) {
+            const card = document.createElement('div');
+            card.className = 'quote-card';
+            card.id = `quote-${q.id}`;
+            card.innerHTML = `
+                <div class="quote-mark">"</div>
+                <p class="quote-content">${q.content}</p>
+                <div class="quote-footer">
+                <div class="quote-author">
+                    <a href="profile.html?u=${q.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
+                        ${q.avatar_url
+                            ? `<img src="${q.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+                            : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#c9b1ff);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${q.username.charAt(0).toUpperCase()}</span>`
+                        }
+                        ${q.username}
+                    </a>
+                    ${q.author ? `· <span>${q.author}</span>` : ''}
+                </div>
+                    <div class="quote-actions">
+                        <button class="share-btn" onclick="copyQuote('${q.content.replace(/'/g, "\\'")}', '${(q.author || '').replace(/'/g, "\\'")}')">📋 Salin</button>
+                        ${(q.username === currentUser || currentUser === 'arekujo001') ? `<button class="del-btn" onclick="deleteQuote(${q.id})">🗑</button>` : ''}
+                    </div>
+                </div>
+                <div class="comment-section">
+                    <button class="comment-toggle" onclick="toggleComments(this, 'quote', ${q.id})">💬 Lihat komentar</button>
+                    <div class="comment-inner" id="comments-quote-${q.id}"></div>
+                </div>
+            `;
+            return card;
+        }
+
         async function loadQuotes() {
             const res = await fetch('/api/quotes');
             const data = await res.json();
@@ -420,32 +451,10 @@
                 list.innerHTML = '<p class="empty">Belum ada quote.</p>';
                 return;
             }
-            list.innerHTML = data.map(q => `
-                <div class="quote-card">
-                    <div class="quote-mark">"</div>
-                    <p class="quote-content">${q.content}</p>
-                    <div class="quote-footer">
-                    <div class="quote-author">
-                        <a href="profile.html?u=${q.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
-                            ${q.avatar_url
-                                ? `<img src="${q.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
-                                : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#c9b1ff);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${q.username.charAt(0).toUpperCase()}</span>`
-                            }
-                            ${q.username}
-                        </a>
-                        ${q.author ? `· <span>${q.author}</span>` : ''}
-                    </div>
-                        <div class="quote-actions">
-                            <button class="share-btn" onclick="copyQuote('${q.content.replace(/'/g, "\\'")}', '${(q.author || '').replace(/'/g, "\\'")}')">📋 Salin</button>
-                            ${(q.username === currentUser || currentUser === 'arekujo001') ? `<button class="del-btn" onclick="deleteQuote(${q.id})">🗑</button>` : ''}
-                        </div>
-                    </div>
-                    <div class="comment-section">
-                        <button class="comment-toggle" onclick="toggleComments(this, 'quote', ${q.id})">💬 Lihat komentar</button>
-                        <div class="comment-inner" id="comments-quote-${q.id}"></div>
-                    </div>
-                </div>
-            `).join('');
+            list.innerHTML = '';
+            data.forEach(q => {
+                list.appendChild(createQuoteCard(q));
+            });
         }
 
         function toggleComments(btn, type, id) {
@@ -466,7 +475,7 @@
             container.innerHTML = `
                 ${comments.length === 0 ? '<p style="color:#bbb; font-size:13px; font-weight:700; padding:10px 0;">Belum ada komentar.</p>' : ''}
                 ${comments.map(c => `
-                    <div class="comment-card">
+                    <div class="comment-card" id="comment-${c.id}">
                         <p class="comment-author" style="display:flex;align-items:center;gap:8px;">
                             <a href="profile.html?u=${c.author}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-weight:800;">
                                 ${c.avatar_url
@@ -476,6 +485,7 @@
                                 ${c.author}
                             </a>
                             · ${c.date}
+                            ${(token && (c.author === currentUser || currentUser === 'arekujo001')) ? `<button onclick="deleteCommentInline(${c.id}, '${type}', ${id})" style="background:transparent; border:none; color:#bbb; font-size:12px; cursor:pointer; transition:color 0.2s; margin-left:auto;" onmouseover="this.style.color='#e05060'" onmouseout="this.style.color='#bbb'">🗑</button>` : ''}
                         </p>
                         ${c.text ? `<p class="comment-text">${c.text}</p>` : ''}
                         ${c.image_url ? `<img src="${c.image_url}" style="width:100%; max-height:200px; object-fit:cover; border-radius:12px; margin-top:8px;" />` : ''}
@@ -516,9 +526,11 @@
                 body: formData
             });
             if (res.ok) {
+                btn.textContent = 'Kirim';
                 delete recBlobs[key];
-                const container = document.getElementById(`comments-${type}-${id}`);
-                loadCommentsInto(type, id, container);
+                // UI diupdate via Socket.IO
+            } else {
+                btn.textContent = 'Kirim';
             }
         }
 
@@ -567,14 +579,14 @@
             if (res.ok) {
                 document.getElementById('quoteInput').value = '';
                 document.getElementById('authorInput').value = '';
-                loadQuotes();
+                // Quote baru muncul via Socket.IO
             }
         }
 
         async function deleteQuote(id) {
             if (!confirm('Hapus quote ini?')) return;
             await fetch(`/api/quotes/${id}`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
-            loadQuotes();
+            // UI diupdate via Socket.IO
         }
 
         function copyQuote(content, author) {
@@ -585,8 +597,94 @@
             setTimeout(() => toast.classList.remove('show'), 2000);
         }
 
+        async function deleteCommentInline(commentId, type, id) {
+            if (!confirm('Hapus komentar ini?')) return;
+            await fetch(`/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            // UI diupdate via Socket.IO
+        }
+
         loadQuotes();
     </script>
     <script src="push-init.js"></script>
+
+    <!-- ===== SOCKET.IO REAL-TIME ===== -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Join room quotes
+        socket.emit('join-content', 'quotes');
+
+        // Identifikasi user
+        if (token && currentUser) {
+            socket.emit('user-join', currentUser);
+        }
+
+        // 1. Quote baru real-time
+        socket.on('new-quote', (data) => {
+            console.log('💬 Quote baru real-time');
+            const list = document.getElementById('quotesList');
+            const emptyMsg = list.querySelector('.empty');
+            if (emptyMsg) emptyMsg.remove();
+            
+            const card = createQuoteCard(data.quote);
+            list.insertBefore(card, list.firstChild);
+        });
+
+        // 2. Quote dihapus real-time
+        socket.on('quote-deleted', (data) => {
+            console.log('🗑️ Quote dihapus real-time');
+            const card = document.getElementById(`quote-${data.id}`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(20px)';
+                card.style.transition = 'all 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    const list = document.getElementById('quotesList');
+                    if (!list.querySelector('.quote-card')) {
+                        list.innerHTML = '<p class="empty">Belum ada quote.</p>';
+                    }
+                }, 300);
+            }
+        });
+
+        // 3. Komentar baru real-time
+        socket.on('new-content-comment', (data) => {
+            if (data.type === 'quote') {
+                console.log('💬 Komentar baru di quote:', data.id);
+                const container = document.getElementById(`comments-quote-${data.id}`);
+                if (container && container.classList.contains('open')) {
+                    loadCommentsInto('quote', data.id, container);
+                }
+            }
+        });
+
+        // 4. Komentar dihapus real-time
+        socket.on('comment-deleted', (data) => {
+            const el = document.getElementById(`comment-${data.commentId}`);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(-10px)';
+                el.style.transition = 'all 0.3s';
+                setTimeout(() => el.remove(), 300);
+            }
+        });
+
+        // 5. User online
+        socket.on('online-users', (users) => {
+            console.log('👥 Online users:', users);
+        });
+
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            socket.emit('leave-content', 'quotes');
+        });
+
+        console.log('🔌 Socket.IO real-time siap di quotes.html');
+    </script>
 </body>
 </html>

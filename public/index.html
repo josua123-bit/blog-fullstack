@@ -790,5 +790,112 @@
         });
     </script>
     <script src="push-init.js"></script>
+
+    <!-- ===== SOCKET.IO REAL-TIME ===== -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // ===== INISIALISASI SOCKET =====
+        const socket = io();
+
+        // Identifikasi user kalau udah login
+        if (token && username) {
+            socket.emit('user-join', username);
+        }
+
+        // ===== DENGERIN EVENT REAL-TIME =====
+
+        // 1. Artikel baru langsung muncul di feed
+        socket.on('new-article', async (data) => {
+            console.log('📝 Artikel baru real-time:', data.article.title);
+            
+            // Ambil avatar dari server
+            let avatarHtml = '';
+            try {
+                const res = await fetch(`/api/user/${data.article.author}`);
+                const userData = await res.json();
+                avatarHtml = userData.avatar_url
+                    ? `<img src="${userData.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+                    : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f4845f,#f7b731);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${data.article.author.charAt(0).toUpperCase()}</span>`;
+            } catch {
+                avatarHtml = `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f4845f,#f7b731);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${data.article.author.charAt(0).toUpperCase()}</span>`;
+            }
+
+            const key = (data.article.tag || '').toLowerCase();
+            const cls = tagClass[key] || 'tag-default';
+            const t = thumbs[Math.floor(Math.random() * thumbs.length)];
+            const img = data.article.image_url
+                ? `<img src="${data.article.image_url}" class="post-thumb" />`
+                : `<div class="post-thumb-placeholder" style="background:${t.bg}">${t.emoji}</div>`;
+
+            // Buat card baru
+            const newCard = document.createElement('div');
+            newCard.className = 'post-card visible';
+            newCard.setAttribute('data-url', `artikel.html?id=${data.article.id}`);
+            newCard.innerHTML = `
+                ${img}
+                <div class="post-body">
+                    <p class="post-tag ${cls}">${data.article.tag}</p>
+                    <h2>${data.article.title}</h2>
+                    <p class="post-excerpt">${(data.article.content || '').substring(0, 120)}...</p>
+                    <div class="post-meta">
+                        <a href="profile.html?u=${data.article.author}" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#aaa;font-size:12px;font-weight:700;">
+                            ${avatarHtml}
+                            ${data.article.author}
+                        </a>
+                        <span>📅 ${data.article.date}</span>
+                        <span>💬 0 komentar</span>
+                    </div>
+                </div>
+            `;
+
+            // Tambahin ke paling atas list
+            const list = document.getElementById('articleList');
+            const emptyMsg = list.querySelector('.empty');
+            if (emptyMsg) emptyMsg.remove();
+            
+            list.insertBefore(newCard, list.firstChild);
+
+            // Attach event listener ke card baru
+            newCard.addEventListener('click', (e) => {
+                addRipple(e, newCard);
+                const url = newCard.dataset.url;
+                if (url) setTimeout(() => navigateTo(url), 120);
+            });
+
+            // Observe untuk scroll reveal
+            observer.observe(newCard);
+        });
+
+        // 2. Artikel dihapus langsung hilang dari feed
+        socket.on('article-deleted', (data) => {
+            console.log('🗑️ Artikel dihapus real-time:', data.articleId);
+            const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
+            if (card) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                setTimeout(() => {
+                    card.remove();
+                    // Cek apakah list kosong
+                    const list = document.getElementById('articleList');
+                    if (!list.querySelector('.post-card')) {
+                        list.innerHTML = '<p class="empty">Belum ada artikel. Jadilah yang pertama menulis!</p>';
+                    }
+                }, 300);
+            }
+        });
+
+        // 3. Update komentar real-time (buat artikel yang mungkin dibuka nanti)
+        socket.on('new-comment', (data) => {
+            console.log('💬 Komentar baru di artikel:', data.articleId);
+        });
+
+        // 4. Lihat user online
+        socket.on('online-users', (users) => {
+            console.log('👥 Online users:', users);
+        });
+
+        console.log('🔌 Socket.IO real-time siap di index.html');
+    </script>
 </body>
 </html>

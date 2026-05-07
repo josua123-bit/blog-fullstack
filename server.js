@@ -1,3 +1,6 @@
+require('dotenv').config();
+console.log('🔑 VAPID_PUBLIC_KEY:', process.env.VAPID_PUBLIC_KEY);
+
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -8,6 +11,8 @@ const fs = require('fs');
 const { Pool } = require('pg');
 const cloudinary = require('cloudinary').v2;
 const webpush = require('web-push');
+const http = require('http');
+const { Server: SocketIOServer } = require('socket.io');
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -48,6 +53,79 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// =================== SOCKET.IO SETUP ===================
+const server = http.createServer(app);
+const io = new SocketIOServer(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Object buat tracking online users
+const onlineUsers = new Map(); // key: socket.id, value: username
+
+io.on('connection', (socket) => {
+    console.log(`🟢 User connected: ${socket.id}`);
+
+    // User login/identifikasi diri
+    socket.on('user-join', (username) => {
+        onlineUsers.set(socket.id, username);
+        socket.username = username;
+        console.log(`👤 ${username} online`);
+        
+        // Kirim list online users ke semua client
+        io.emit('online-users', Array.from(new Set(onlineUsers.values())));
+    });
+
+    // User disconnect
+    socket.on('disconnect', () => {
+        console.log(`🔴 User disconnected: ${socket.id}`);
+        const username = onlineUsers.get(socket.id);
+        onlineUsers.delete(socket.id);
+        if (username) {
+            io.emit('online-users', Array.from(new Set(onlineUsers.values())));
+        }
+    });
+
+    // Join ke room artikel tertentu (biar real-time comment spesifik)
+    socket.on('join-article', (articleId) => {
+        socket.join(`article-${articleId}`);
+        console.log(`📄 ${socket.username || socket.id} joined article-${articleId}`);
+    });
+
+    // Leave room artikel
+    socket.on('leave-article', (articleId) => {
+        socket.leave(`article-${articleId}`);
+        console.log(`📄 ${socket.username || socket.id} left article-${articleId}`);
+    });
+
+    // Join ke room global content (TIL, Quotes, Voice Notes)
+    socket.on('join-content', (contentType) => {
+        socket.join(`content-${contentType}`);
+        console.log(`📦 ${socket.username || socket.id} joined content-${contentType}`);
+    });
+    
+    // Leave room content
+    socket.on('leave-content', (contentType) => {
+        socket.leave(`content-${contentType}`);
+        console.log(`📦 ${socket.username || socket.id} left content-${contentType}`);
+    });
+});
+
+// Helper function buat broadcast real-time
+function broadcastToArticle(articleId, eventName, data) {
+    io.to(`article-${articleId}`).emit(eventName, data);
+}
+
+function broadcastToContent(contentType, eventName, data) {
+    io.to(`content-${contentType}`).emit(eventName, data);
+}
+
+function broadcastToAll(eventName, data) {
+    io.emit(eventName, data);
+}
 
 async function setupDB() {
     await pool.query(`
@@ -362,6 +440,11 @@ app.post('/api/articles', authMiddleware, async (req, res) => {
         [title, tag, content, req.user.username, date, imageUrl || null]
     );
 
+    // Real-time broadcast artikel baru
+    broadcastToAll('new-article', { 
+        article: result.rows[0]
+    });
+
     // Kirim notif ke semua user (kecuali yang nulis)
     sendPushToAll({
         title: '📝 Artikel Baru!',
@@ -402,6 +485,10 @@ app.delete('/api/articles/:id', authMiddleware, async (req, res) => {
         'UPDATE articles SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
         [req.user.username, req.params.id]
     );
+
+    // Real-time broadcast artikel dihapus
+    broadcastToAll('article-deleted', { articleId: parseInt(req.params.id) });
+
     res.json({ message: 'Artikel berhasil dihapus!' });
 });
 
@@ -413,10 +500,27 @@ app.post('/api/articles/:id/like', authMiddleware, async (req, res) => {
     if (existing.rows.length > 0) {
         await pool.query('DELETE FROM likes WHERE article_id = $1 AND username = $2', [id, username]);
         const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+
+        // Real-time broadcast unlike
+        broadcastToArticle(parseInt(id), 'like-updated', {
+            articleId: parseInt(id),
+            liked: false,
+            count: parseInt(count.rows[0].count),
+            username: username
+        });
+
         return res.json({ liked: false, count: parseInt(count.rows[0].count) });
     }
     await pool.query('INSERT INTO likes (article_id, username) VALUES ($1, $2)', [id, username]);
     const count = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [id]);
+
+    // Real-time broadcast like
+    broadcastToArticle(parseInt(id), 'like-updated', {
+        articleId: parseInt(id),
+        liked: true,
+        count: parseInt(count.rows[0].count),
+        username: username
+    });
 
     // Notif ke penulis artikel
     const article = await pool.query('SELECT author, title FROM articles WHERE id = $1', [id]);
@@ -468,6 +572,18 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
         [req.params.id, req.user.username, text, imageUrl, date]
     );
 
+    const comments = await pool.query(
+        'SELECT c.*, u.avatar_url FROM comments c LEFT JOIN users u ON u.username = c.author WHERE c.article_id = $1 AND c.deleted_at IS NULL ORDER BY c.created_at ASC',
+        [req.params.id]
+    );
+
+    // Real-time broadcast komentar baru
+    broadcastToArticle(parseInt(req.params.id), 'new-comment', {
+        articleId: parseInt(req.params.id),
+        comment: comments.rows[comments.rows.length - 1],
+        allComments: comments.rows
+    });
+
     // Notif ke penulis artikel
     if (article.rows[0].author !== req.user.username) {
         sendPushToUser(article.rows[0].author, {
@@ -477,7 +593,6 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
         });
     }
 
-    const comments = await pool.query('SELECT * FROM comments WHERE article_id = $1 AND deleted_at IS NULL', [req.params.id]);
     res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
 });
 
@@ -502,6 +617,17 @@ app.post('/api/til', authMiddleware, async (req, res) => {
         [req.user.username, content, date]
     );
 
+    // Ambil avatar_url user
+    const user = await pool.query('SELECT avatar_url FROM users WHERE username = $1', [req.user.username]);
+
+    // Real-time broadcast TIL baru
+    broadcastToContent('til', 'new-til', { 
+        til: {
+            ...result.rows[0],
+            avatar_url: user.rows[0]?.avatar_url
+        }
+    });
+
     // Notif ke semua user
     sendPushToAll({
         title: '📓 TIL Baru!',
@@ -517,6 +643,10 @@ app.delete('/api/til/:id', authMiddleware, async (req, res) => {
     if (til.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     if (til.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
     await pool.query('UPDATE til SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+
+    // Real-time broadcast TIL dihapus
+    broadcastToContent('til', 'til-deleted', { id: parseInt(req.params.id) });
+
     res.json({ message: 'Berhasil dihapus!' });
 });
 
@@ -540,6 +670,17 @@ app.post('/api/quotes', authMiddleware, async (req, res) => {
         [req.user.username, content, author || null]
     );
 
+    // Ambil avatar_url user
+    const user = await pool.query('SELECT avatar_url FROM users WHERE username = $1', [req.user.username]);
+
+    // Real-time broadcast Quote baru
+    broadcastToContent('quotes', 'new-quote', { 
+        quote: {
+            ...result.rows[0],
+            avatar_url: user.rows[0]?.avatar_url
+        }
+    });
+
     // Notif ke semua user
     sendPushToAll({
         title: '💬 Quote Baru!',
@@ -556,6 +697,10 @@ app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
     const isAdmin = req.user.username === process.env.ADMIN;
     if (quote.rows[0].username !== req.user.username && !isAdmin) return res.status(403).json({ message: 'Tidak punya izin' });
     await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+
+    // Real-time broadcast Quote dihapus
+    broadcastToContent('quotes', 'quote-deleted', { id: parseInt(req.params.id) });
+
     res.json({ message: 'Berhasil dihapus!' });
 });
 
@@ -580,6 +725,17 @@ app.post('/api/voicenotes', authMiddleware, async (req, res) => {
         [req.user.username, title || 'Voice Note', url, date]
     );
 
+    // Ambil avatar_url user
+    const user = await pool.query('SELECT avatar_url FROM users WHERE username = $1', [req.user.username]);
+
+    // Real-time broadcast Voice Note baru
+    broadcastToContent('voicenotes', 'new-voicenote', { 
+        voiceNote: {
+            ...result.rows[0],
+            avatar_url: user.rows[0]?.avatar_url
+        }
+    });
+
     // Notif ke semua user
     sendPushToAll({
         title: '🎙️ Voice Note Baru!',
@@ -595,6 +751,10 @@ app.delete('/api/voicenotes/:id', authMiddleware, async (req, res) => {
     if (vn.rows.length === 0) return res.status(404).json({ message: 'Tidak ditemukan' });
     if (vn.rows[0].username !== req.user.username) return res.status(403).json({ message: 'Tidak punya izin' });
     await pool.query('UPDATE voice_notes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+
+    // Real-time broadcast Voice Note dihapus
+    broadcastToContent('voicenotes', 'voicenote-deleted', { id: parseInt(req.params.id) });
+
     res.json({ message: 'Berhasil dihapus!' });
 });
 
@@ -628,21 +788,37 @@ app.delete('/api/admin/articles/:id', adminMiddleware, async (req, res) => {
         'UPDATE articles SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
         [req.user.username, req.params.id]
     );
+
+    // Real-time broadcast artikel dihapus
+    broadcastToAll('article-deleted', { articleId: parseInt(req.params.id) });
+
     res.json({ message: 'Artikel berhasil dihapus!' });
 });
 
 app.delete('/api/admin/quotes/:id', adminMiddleware, async (req, res) => {
     await pool.query('UPDATE quotes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+
+    // Real-time broadcast quote dihapus
+    broadcastToContent('quotes', 'quote-deleted', { id: parseInt(req.params.id) });
+
     res.json({ message: 'Quote dihapus!' });
 });
 
 app.delete('/api/admin/til/:id', adminMiddleware, async (req, res) => {
     await pool.query('UPDATE til SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+
+    // Real-time broadcast TIL dihapus
+    broadcastToContent('til', 'til-deleted', { id: parseInt(req.params.id) });
+
     res.json({ message: 'TIL dihapus!' });
 });
 
 app.delete('/api/admin/voicenotes/:id', adminMiddleware, async (req, res) => {
     await pool.query('UPDATE voice_notes SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2', [req.user.username, req.params.id]);
+
+    // Real-time broadcast Voice Note dihapus
+    broadcastToContent('voicenotes', 'voicenote-deleted', { id: parseInt(req.params.id) });
+
     res.json({ message: 'Voice note dihapus!' });
 });
 
@@ -745,6 +921,19 @@ app.post('/api/comments/:type/:id', authMiddleware, upload.fields([
         [type, id, type === 'article' ? id : null, req.user.username, text, imageUrl, audioUrl, date]
     );
 
+    const comments = await pool.query(
+        'SELECT c.*, u.avatar_url FROM comments c LEFT JOIN users u ON u.username = c.author WHERE c.target_type = $1 AND c.target_id = $2 AND c.deleted_at IS NULL ORDER BY c.created_at ASC',
+        [type, id]
+    );
+
+    // Real-time broadcast komentar baru
+    broadcastToContent(type, 'new-content-comment', {
+        type,
+        id: parseInt(id),
+        comment: comments.rows[comments.rows.length - 1],
+        allComments: comments.rows
+    });
+
     // Notif ke pemilik konten yang dikomentari
     let ownerUsername = null;
     let contentTitle = '';
@@ -768,10 +957,6 @@ app.post('/api/comments/:type/:id', authMiddleware, upload.fields([
         });
     }
 
-    const comments = await pool.query(
-        'SELECT * FROM comments WHERE target_type = $1 AND target_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC',
-        [type, id]
-    );
     res.json({ message: 'Komentar ditambahkan!', comments: comments.rows });
 });
 
@@ -787,11 +972,24 @@ app.delete('/api/comments/:id', authMiddleware, async (req, res) => {
         'UPDATE comments SET deleted_at = NOW(), deleted_by = $1 WHERE id = $2',
         [req.user.username, req.params.id]
     );
+
+    // Real-time broadcast komentar dihapus
+    const deletedComment = comment.rows[0];
+    if (deletedComment.article_id) {
+        broadcastToArticle(deletedComment.article_id, 'comment-deleted', {
+            commentId: parseInt(req.params.id)
+        });
+    } else if (deletedComment.target_type && deletedComment.target_id) {
+        broadcastToContent(deletedComment.target_type, 'comment-deleted', {
+            commentId: parseInt(req.params.id)
+        });
+    }
+
     res.json({ message: 'Komentar berhasil dihapus!' });
 });
 
 // =================== START ===================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server jalan di http://localhost:${PORT}`);
+server.listen(PORT, () => {
+    console.log(`🚀 Server real-time jalan di http://localhost:${PORT}`);
 });

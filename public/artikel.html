@@ -531,11 +531,18 @@
                 headers: token ? { 'Authorization': 'Bearer ' + token } : {}
             });
             const data = await res.json();
+            updateLikeUI(data);
+        }
+
+        function updateLikeUI(data) {
             document.getElementById('likeCount').textContent = `${data.count} suka`;
             const btn = document.getElementById('likeBtn');
             if (data.liked) {
                 btn.classList.add('liked');
                 document.getElementById('likeBtnText').textContent = 'Disukai';
+            } else {
+                btn.classList.remove('liked');
+                document.getElementById('likeBtnText').textContent = 'Suka';
             }
         }
 
@@ -550,14 +557,7 @@
                 headers: { 'Authorization': 'Bearer ' + token }
             });
             const data = await res.json();
-            document.getElementById('likeCount').textContent = `${data.count} suka`;
-            if (data.liked) {
-                btn.classList.add('liked');
-                document.getElementById('likeBtnText').textContent = 'Disukai';
-            } else {
-                btn.classList.remove('liked');
-                document.getElementById('likeBtnText').textContent = 'Suka';
-            }
+            updateLikeUI(data);
         }
 
         function renderComments(comments) {
@@ -737,5 +737,85 @@
         loadArticle();
     </script>
     <script src="push-init.js"></script>
+
+    <!-- ===== SOCKET.IO REAL-TIME ===== -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // Join room artikel ini
+        if (articleId) {
+            socket.emit('join-article', parseInt(articleId));
+
+            // Identifikasi user
+            if (token && currentUser) {
+                socket.emit('user-join', currentUser);
+            }
+        }
+
+        // ===== DENGERIN EVENT REAL-TIME =====
+
+        // 1. Komentar baru real-time
+        socket.on('new-comment', (data) => {
+            if (data.articleId === parseInt(articleId)) {
+                console.log('💬 Komentar baru real-time');
+                renderComments(data.allComments);
+            }
+        });
+
+        // 2. Like update real-time
+        socket.on('like-updated', (data) => {
+            if (data.articleId === parseInt(articleId)) {
+                console.log('❤️ Like update real-time');
+                updateLikeUI({
+                    count: data.count,
+                    liked: token ? (data.username === currentUser ? data.liked : document.getElementById('likeBtn').classList.contains('liked')) : false
+                });
+                // Update like count aja
+                document.getElementById('likeCount').textContent = `${data.count} suka`;
+            }
+        });
+
+        // 3. Komentar dihapus real-time
+        socket.on('comment-deleted', (data) => {
+            const el = document.getElementById(`comment-${data.commentId}`);
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(-20px)';
+                el.style.transition = 'all 0.3s';
+                setTimeout(() => {
+                    el.remove();
+                    // Update comment count
+                    const currentCount = document.querySelectorAll('.comment-card').length;
+                    document.getElementById('commentCount').textContent = currentCount;
+                    if (currentCount === 0) {
+                        document.getElementById('commentList').innerHTML = '<p class="empty-comment">Belum ada komentar. Jadilah yang pertama!</p>';
+                    }
+                }, 300);
+            }
+        });
+
+        // 4. Artikel dihapus (balik ke index)
+        socket.on('article-deleted', (data) => {
+            if (data.articleId === parseInt(articleId)) {
+                alert('Artikel ini telah dihapus.');
+                location.href = 'index.html';
+            }
+        });
+
+        // 5. User online
+        socket.on('online-users', (users) => {
+            console.log('👥 Online users:', users);
+        });
+
+        // Cleanup: leave room pas user tutup/pindah halaman
+        window.addEventListener('beforeunload', () => {
+            if (articleId) {
+                socket.emit('leave-article', parseInt(articleId));
+            }
+        });
+
+        console.log('🔌 Socket.IO real-time siap di artikel.html');
+    </script>
 </body>
 </html>

@@ -69,8 +69,13 @@ async function deleteComment(commentId, type, id) {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        if (res.ok) loadComments(type, id);
-        else {
+        if (res.ok) {
+            // UI diupdate via Socket.IO, jadi ga perlu loadComments lagi
+            // Tapi kalau Socket.IO ga connect, fallback ke reload
+            if (typeof socket === 'undefined' || !socket.connected) {
+                loadComments(type, id);
+            }
+        } else {
             const data = await res.json();
             alert(data.message || 'Gagal menghapus.');
         }
@@ -152,6 +157,8 @@ async function submitComment(type, id) {
         successEl.textContent = 'Komentar terkirim!';
         successEl.style.display = 'block';
         recordedAudioBlob = null;
+        
+        // Render ulang komentar
         renderComments(data.comments, type, id);
     } catch {
         errorEl.textContent = 'Gagal terhubung ke server.';
