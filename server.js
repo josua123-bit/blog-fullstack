@@ -340,10 +340,13 @@ app.post('/api/upload', authMiddleware, upload.single('image'), async (req, res)
 app.get('/api/articles', async (req, res) => {
     const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const result = await Promise.all(articles.rows.map(async a => {
-        const comments = await pool.query(
-    'SELECT * FROM comments WHERE (article_id = $1 OR (target_type = $2 AND target_id = $1)) AND deleted_at IS NULL ORDER BY created_at ASC',
-    [a.id, 'article']
-);
+    const comments = await pool.query(`
+        SELECT c.*, u.avatar_url 
+        FROM comments c
+        LEFT JOIN users u ON u.username = c.author
+        WHERE (c.article_id = $1 OR (c.target_type = $2 AND c.target_id = $1)) AND c.deleted_at IS NULL 
+        ORDER BY c.created_at ASC
+    `, [a.id, 'article']);
         const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [a.id]);
         return { ...a, comments: comments.rows, likes: parseInt(likes.rows[0].count) };
     }));
@@ -377,10 +380,13 @@ app.get('/api/articles/:id', async (req, res) => {
         WHERE a.id = $1 AND a.deleted_at IS NULL
     `, [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
-    const comments = await pool.query(
-    'SELECT * FROM comments WHERE (article_id = $1 OR (target_type = $2 AND target_id = $1)) AND deleted_at IS NULL ORDER BY created_at ASC',
-    [req.params.id, 'article']
-);
+    const comments = await pool.query(`
+        SELECT c.*, u.avatar_url 
+        FROM comments c
+        LEFT JOIN users u ON u.username = c.author
+        WHERE (c.article_id = $1 OR (c.target_type = $2 AND c.target_id = $1)) AND c.deleted_at IS NULL 
+        ORDER BY c.created_at ASC
+    `, [req.params.id, 'article']);
     const likes = await pool.query('SELECT COUNT(*) FROM likes WHERE article_id = $1', [req.params.id]);
     res.json({ ...article.rows[0], comments: comments.rows, likes: parseInt(likes.rows[0].count) });
 });
@@ -692,10 +698,13 @@ app.get('/api/admin/deleted/:type/:id', adminMiddleware, async (req, res) => {
 // =================== UNIVERSAL COMMENTS ===================
 app.get('/api/comments/:type/:id', async (req, res) => {
     const { type, id } = req.params;
-    const result = await pool.query(
-        'SELECT * FROM comments WHERE target_type = $1 AND target_id = $2 AND deleted_at IS NULL ORDER BY created_at ASC',
-        [type, id]
-    );
+    const result = await pool.query(`
+    SELECT c.*, u.avatar_url 
+    FROM comments c
+    LEFT JOIN users u ON u.username = c.author
+    WHERE c.target_type = $1 AND c.target_id = $2 AND c.deleted_at IS NULL 
+    ORDER BY c.created_at ASC
+`, [type, id]);
     res.json(result.rows);
 });
 
