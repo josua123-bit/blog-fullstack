@@ -885,9 +885,22 @@
             }
         });
 
-        // 3. Update komentar real-time (buat artikel yang mungkin dibuka nanti)
+        // 3. Update komentar real-time di index
         socket.on('new-comment', (data) => {
             console.log('💬 Komentar baru di artikel:', data.articleId);
+    
+            // Update jumlah komentar di card artikel
+            const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
+            if (card) {
+                // Cari span yang ada tulisan "komentar"
+                const metaSpans = card.querySelectorAll('.post-meta span');
+                metaSpans.forEach(span => {
+                    if (span.textContent.includes('komentar')) {
+                        const count = data.allComments ? data.allComments.length : 0;
+                        span.textContent = `💬 ${count} komentar`;
+                    }
+                });
+            }
         });
 
         // 4. Lihat user online
