@@ -22,6 +22,37 @@
             from { opacity: 0; transform: translateY(16px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-16px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes popIn {
+            0%   { opacity: 0; transform: scale(0.85); }
+            60%  { transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes countUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50%       { transform: scale(1.4); opacity: 0.7; }
+        }
+        @keyframes shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* PAGE TRANSITION */
+        .page-transition {
+            position: fixed; inset: 0;
+            background: #fafafa;
+            z-index: 9998;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .page-transition.active { opacity: 1; pointer-events: all; }
 
         /* NAV */
         nav {
@@ -35,6 +66,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            animation: fadeUp 0.4s ease both;
         }
         nav .logo {
             font-size: 19px;
@@ -44,7 +76,9 @@
             align-items: center;
             gap: 7px;
             text-decoration: none;
+            transition: opacity 0.2s;
         }
+        nav .logo:hover { opacity: 0.7; }
         .btn {
             background: #2d2d2d;
             color: #fff !important;
@@ -53,12 +87,13 @@
             font-size: 13px;
             font-weight: 700;
             text-decoration: none;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, transform 0.2s;
             font-family: 'Nunito', sans-serif;
             border: none;
             cursor: pointer;
         }
-        .btn:hover { opacity: 0.75; }
+        .btn:hover { opacity: 0.75; transform: translateY(-1px); }
+        .btn:active { transform: scale(0.96); }
         .btn-outline {
             background: transparent;
             color: #888 !important;
@@ -72,14 +107,21 @@
             font-family: 'Nunito', sans-serif;
             cursor: pointer;
         }
-        .btn-outline:hover { border-color: #999; color: #444 !important; }
+        .btn-outline:hover { border-color: #999; color: #444 !important; transform: translateY(-1px); }
+
+        /* SKELETON */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.4s infinite;
+            border-radius: 10px;
+        }
 
         /* PROFILE HEADER */
         .profile-header {
             max-width: 680px;
             margin: 0 auto;
             padding: 48px 24px 0;
-            animation: fadeUp 0.5s ease 0.1s both;
         }
 
         .profile-top {
@@ -87,16 +129,14 @@
             align-items: flex-start;
             gap: 24px;
             margin-bottom: 28px;
+            opacity: 0;
+            animation: fadeUp 0.5s ease 0.15s forwards;
         }
 
-        .avatar-wrap {
-            position: relative;
-            flex-shrink: 0;
-        }
+        .avatar-wrap { position: relative; flex-shrink: 0; }
 
         .avatar {
-            width: 88px;
-            height: 88px;
+            width: 88px; height: 88px;
             border-radius: 50%;
             object-fit: cover;
             background: linear-gradient(135deg, #f4845f, #f7b731);
@@ -107,30 +147,27 @@
             font-weight: 900;
             color: #fff;
             overflow: hidden;
+            animation: popIn 0.5s ease 0.2s both;
+            transition: transform 0.3s ease;
         }
-
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        .avatar:hover { transform: scale(1.05); }
+        .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
         .avatar-edit-btn {
             position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 26px;
-            height: 26px;
+            bottom: 0; right: 0;
+            width: 26px; height: 26px;
             background: #2d2d2d;
             border-radius: 50%;
             border: 2px solid #fafafa;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             font-size: 12px;
-            display: none;
+            transition: transform 0.2s;
         }
+        .avatar-edit-btn:hover { transform: scale(1.1); }
 
         .profile-info { flex: 1; min-width: 0; }
 
@@ -141,27 +178,9 @@
             letter-spacing: -0.5px;
             margin-bottom: 4px;
         }
-
-        .profile-joined {
-            font-size: 12px;
-            color: #bbb;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-
-        .profile-bio {
-            font-size: 14px;
-            color: #666;
-            font-weight: 500;
-            line-height: 1.6;
-        }
-
-        .profile-bio-empty {
-            font-size: 13px;
-            color: #ccc;
-            font-style: italic;
-            font-weight: 500;
-        }
+        .profile-joined { font-size: 12px; color: #bbb; font-weight: 600; margin-bottom: 10px; }
+        .profile-bio { font-size: 14px; color: #666; font-weight: 500; line-height: 1.6; }
+        .profile-bio-empty { font-size: 13px; color: #ccc; font-style: italic; font-weight: 500; }
 
         .profile-stats {
             display: flex;
@@ -169,29 +188,26 @@
             padding: 20px 0;
             border-top: 1px solid #f0ece8;
             border-bottom: 1px solid #f0ece8;
-            margin-bottom: 0;
+            opacity: 0;
+            animation: fadeUp 0.5s ease 0.3s forwards;
         }
 
-        .stat-item { text-align: center; }
+        .stat-item {
+            text-align: center;
+            transition: transform 0.2s;
+            cursor: default;
+        }
+        .stat-item:hover { transform: translateY(-2px); }
         .stat-num {
             font-size: 22px;
             font-weight: 900;
             color: #1a1a1a;
             display: block;
+            animation: countUp 0.5s ease 0.5s both;
         }
-        .stat-label {
-            font-size: 11px;
-            color: #aaa;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        .stat-label { font-size: 11px; color: #aaa; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* EDIT PROFILE BTN */
-        .edit-profile-btn {
-            display: none;
-            margin-top: 16px;
-        }
+        .edit-profile-btn { display: none; margin-top: 16px; animation: fadeUp 0.4s ease 0.4s both; }
 
         /* TABS */
         .tabs {
@@ -199,19 +215,16 @@
             margin: 0 auto;
             padding: 0 24px;
             display: flex;
-            gap: 0;
             border-bottom: 1px solid #f0ece8;
             margin-top: 24px;
+            opacity: 0;
+            animation: fadeUp 0.4s ease 0.35s forwards;
         }
-
         .tab-btn {
-            background: none;
-            border: none;
+            background: none; border: none;
             padding: 12px 20px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #bbb;
-            cursor: pointer;
+            font-size: 13px; font-weight: 700;
+            color: #bbb; cursor: pointer;
             border-bottom: 2px solid transparent;
             margin-bottom: -1px;
             transition: all 0.2s;
@@ -222,14 +235,9 @@
         .tab-btn:hover:not(.active) { color: #888; }
 
         /* CONTENT */
-        .tab-content {
-            max-width: 680px;
-            margin: 0 auto;
-            padding: 32px 24px 80px;
-        }
-
+        .tab-content { max-width: 680px; margin: 0 auto; padding: 32px 24px 80px; }
         .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
+        .tab-panel.active { display: block; animation: fadeUp 0.3s ease; }
 
         /* ARTICLE CARD */
         .post-card {
@@ -240,63 +248,26 @@
             border-bottom: 1px solid #f4f0ec;
             cursor: pointer;
             transition: transform 0.2s;
+            opacity: 0;
+            transform: translateY(16px);
         }
+        .post-card.visible { opacity: 1; transform: translateY(0); transition: opacity 0.4s ease, transform 0.4s ease; }
         .post-card:hover { transform: translateX(4px); }
 
-        .post-thumb {
-            width: 80px;
-            height: 80px;
-            border-radius: 14px;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-        .post-thumb-placeholder {
-            width: 80px;
-            height: 80px;
-            border-radius: 14px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 26px;
-        }
+        .post-thumb { width: 80px; height: 80px; border-radius: 14px; object-fit: cover; flex-shrink: 0; transition: transform 0.3s; }
+        .post-card:hover .post-thumb { transform: scale(1.04); }
+        .post-thumb-placeholder { width: 80px; height: 80px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; transition: transform 0.3s; }
+        .post-card:hover .post-thumb-placeholder { transform: scale(1.04); }
         .post-body { flex: 1; min-width: 0; }
-        .post-tag {
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            margin-bottom: 4px;
-        }
+        .post-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px; }
         .tag-refleksi { color: #e05060; }
         .tag-cerita   { color: #3b9dcf; }
         .tag-opini    { color: #8059d0; }
         .tag-lifestyle{ color: #c07020; }
         .tag-default  { color: #888; }
-
-        .post-card h3 {
-            font-size: 16px;
-            font-weight: 800;
-            color: #1a1a1a;
-            margin-bottom: 4px;
-            line-height: 1.3;
-        }
-        .post-excerpt {
-            color: #aaa;
-            font-size: 13px;
-            font-weight: 500;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-        .post-meta {
-            font-size: 11px;
-            color: #ccc;
-            font-weight: 600;
-            margin-top: 8px;
-        }
+        .post-card h3 { font-size: 16px; font-weight: 800; color: #1a1a1a; margin-bottom: 4px; line-height: 1.3; }
+        .post-excerpt { color: #aaa; font-size: 13px; font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .post-meta { font-size: 11px; color: #ccc; font-weight: 600; margin-top: 8px; }
 
         /* TIL CARD */
         .til-card {
@@ -305,20 +276,14 @@
             border-radius: 16px;
             padding: 18px 20px;
             margin-bottom: 12px;
-            animation: fadeUp 0.4s ease both;
+            opacity: 0;
+            transform: translateY(16px);
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
         }
-        .til-card p {
-            font-size: 14px;
-            color: #444;
-            font-weight: 500;
-            line-height: 1.6;
-        }
-        .til-card .til-date {
-            font-size: 11px;
-            color: #ccc;
-            font-weight: 600;
-            margin-top: 8px;
-        }
+        .til-card.visible { opacity: 1; transform: translateY(0); transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.2s, box-shadow 0.2s; }
+        .til-card:hover { border-color: #90ddb8; transform: translateX(3px); box-shadow: 0 4px 12px rgba(45,158,107,0.08); }
+        .til-card p { font-size: 14px; color: #444; font-weight: 500; line-height: 1.6; }
+        .til-card .til-date { font-size: 11px; color: #ccc; font-weight: 600; margin-top: 8px; }
 
         /* QUOTE CARD */
         .quote-card {
@@ -327,35 +292,22 @@
             border-radius: 16px;
             padding: 20px 24px;
             margin-bottom: 12px;
-            animation: fadeUp 0.4s ease both;
+            opacity: 0;
+            transform: translateY(16px);
+            transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
         }
-        .quote-text {
-            font-size: 16px;
-            font-weight: 700;
-            color: #2d2d2d;
-            line-height: 1.5;
-            margin-bottom: 8px;
-        }
+        .quote-card.visible { opacity: 1; transform: translateY(0); transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.2s, box-shadow 0.2s; }
+        .quote-card:hover { border-color: #c4a8f0; transform: translateX(3px); box-shadow: 0 4px 12px rgba(124,58,237,0.08); }
+        .quote-text { font-size: 16px; font-weight: 700; color: #2d2d2d; line-height: 1.5; margin-bottom: 8px; }
         .quote-text::before { content: '"'; color: #f4845f; font-size: 24px; line-height: 0; vertical-align: -6px; margin-right: 2px; }
         .quote-text::after  { content: '"'; color: #f4845f; font-size: 24px; line-height: 0; vertical-align: -6px; margin-left: 2px; }
-        .quote-author {
-            font-size: 12px;
-            color: #bbb;
-            font-weight: 600;
-        }
+        .quote-author { font-size: 12px; color: #bbb; font-weight: 600; }
 
-        .empty {
-            text-align: center;
-            color: #ccc;
-            padding: 48px 0;
-            font-size: 14px;
-            font-weight: 600;
-        }
+        .empty { text-align: center; color: #ccc; padding: 48px 0; font-size: 14px; font-weight: 600; }
 
         /* EDIT MODAL */
         .modal-overlay {
-            position: fixed;
-            inset: 0;
+            position: fixed; inset: 0;
             background: rgba(0,0,0,0.3);
             backdrop-filter: blur(4px);
             display: none;
@@ -365,113 +317,72 @@
             padding: 20px;
         }
         .modal-overlay.open { display: flex; }
-
         .modal {
             background: #fff;
             border-radius: 24px;
             padding: 32px;
-            width: 100%;
-            max-width: 420px;
-            animation: fadeUp 0.3s ease;
+            width: 100%; max-width: 420px;
+            animation: popIn 0.3s ease;
         }
-
-        .modal h2 {
-            font-size: 20px;
-            font-weight: 900;
-            margin-bottom: 24px;
-            color: #1a1a1a;
-        }
-
+        .modal h2 { font-size: 20px; font-weight: 900; margin-bottom: 24px; color: #1a1a1a; }
         .form-group { margin-bottom: 18px; }
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 800;
-            color: #999;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
+        .form-group label { display: block; font-size: 12px; font-weight: 800; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px 16px;
+            border: 1.5px solid #eee; border-radius: 12px;
+            font-size: 14px; font-family: 'Nunito', sans-serif;
+            color: #2d2d2d; background: #fafafa;
+            outline: none; transition: border-color 0.2s; resize: vertical;
         }
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border: 1.5px solid #eee;
-            border-radius: 12px;
-            font-size: 14px;
-            font-family: 'Nunito', sans-serif;
-            color: #2d2d2d;
-            background: #fafafa;
-            outline: none;
-            transition: border-color 0.2s;
-            resize: vertical;
-        }
-        .form-group input:focus,
-        .form-group textarea:focus { border-color: #2d2d2d; background: #fff; }
-
-        .avatar-preview-wrap {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 8px;
-        }
+        .form-group input:focus, .form-group textarea:focus { border-color: #2d2d2d; background: #fff; }
+        .avatar-preview-wrap { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
         .avatar-preview {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
+            width: 60px; height: 60px; border-radius: 50%;
             object-fit: cover;
             background: linear-gradient(135deg, #f4845f, #f7b731);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 22px;
-            font-weight: 900;
-            color: #fff;
-            overflow: hidden;
-            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 900; color: #fff;
+            overflow: hidden; flex-shrink: 0;
+            transition: transform 0.2s;
         }
+        .avatar-preview:hover { transform: scale(1.05); }
         .avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
-
         .file-input-label {
-            display: inline-block;
-            padding: 8px 16px;
-            border: 1.5px dashed #ddd;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #888;
-            cursor: pointer;
-            transition: all 0.2s;
+            display: inline-block; padding: 8px 16px;
+            border: 1.5px dashed #ddd; border-radius: 10px;
+            font-size: 13px; font-weight: 700; color: #888;
+            cursor: pointer; transition: all 0.2s;
         }
         .file-input-label:hover { border-color: #aaa; color: #555; }
         #avatarFileInput { display: none; }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 24px;
-        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
         .modal-actions .btn { flex: 1; text-align: center; }
 
+        /* TOAST */
         .toast {
-            position: fixed;
-            bottom: 28px;
-            left: 50%;
+            position: fixed; bottom: 28px; left: 50%;
             transform: translateX(-50%) translateY(80px);
-            background: #2d2d2d;
-            color: #fff;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 13px;
-            font-weight: 700;
-            z-index: 999;
-            transition: transform 0.3s ease;
+            background: #2d2d2d; color: #fff;
+            padding: 12px 24px; border-radius: 30px;
+            font-size: 13px; font-weight: 700;
+            z-index: 999; transition: transform 0.3s ease;
             white-space: nowrap;
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
 
+        /* FOOTER DOTS */
+        .footer-dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .footer-dots span:nth-child(1) { animation: pulseDot 1.8s ease-in-out 0s infinite; }
+        .footer-dots span:nth-child(2) { animation: pulseDot 1.8s ease-in-out 0.2s infinite; }
+        .footer-dots span:nth-child(3) { animation: pulseDot 1.8s ease-in-out 0.4s infinite; }
+        .footer-dots span:nth-child(4) { animation: pulseDot 1.8s ease-in-out 0.6s infinite; }
+        .footer-dots span:nth-child(5) { animation: pulseDot 1.8s ease-in-out 0.8s infinite; }
+
+        footer { text-align: center; padding: 36px 20px; border-top: 1px solid #f0ece8; font-size: 13px; color: #bbb; font-weight: 600; }
+        .footer-dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 10px; }
+
         @media (max-width: 600px) {
-            nav { padding: 14px 16px; }
+            nav { padding: 14px 16px; backdrop-filter: none; background: rgba(255,255,255,0.98); }
             .profile-header { padding: 32px 16px 0; }
             .tabs { padding: 0 16px; }
             .tab-content { padding: 24px 16px 60px; }
@@ -479,27 +390,13 @@
             .avatar { width: 72px; height: 72px; font-size: 26px; }
             .profile-username { font-size: 20px; }
         }
-
-        @media (max-width: 600px) {
-            nav {
-                backdrop-filter: none;
-                -webkit-backdrop-filter: none;
-                background: rgba(255,255,255,0.98);
-            }
-            .post-card {
-        will-change: transform;
-            }
-            .ai-greeting {
-                will-change: opacity;
-            }
-        }
-
     </style>
 </head>
 <body>
+<div class="page-transition" id="pageTransition"></div>
 
 <nav>
-    <a href="index.html" class="logo">
+    <a href="index.html" class="logo" onclick="navigateTo(event,'index.html')">
         <svg width="30" height="30" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
             <g fill="none" stroke="#c97d4e" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M100 148 C80 132,56 116,56 92 C56 75,69 64,82 64 C89 64,96 68,100 74 C104 68,111 64,118 64 C131 64,144 75,144 92 C144 116,120 132,100 148Z" stroke-width="1.4" opacity="0.9"/>
@@ -510,7 +407,6 @@
     <div id="navActions" style="display:flex;gap:8px;align-items:center;"></div>
 </nav>
 
-<!-- PROFILE HEADER -->
 <div class="profile-header" id="profileHeader">
     <div class="profile-top">
         <div class="avatar-wrap">
@@ -542,7 +438,6 @@
     </div>
 </div>
 
-<!-- TABS -->
 <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('articles', this)">Artikel</button>
     <button class="tab-btn" onclick="switchTab('til', this)">TIL</button>
@@ -561,7 +456,17 @@
     </div>
 </div>
 
-<!-- EDIT MODAL -->
+<footer>
+    <div class="footer-dots">
+        <span style="background:#f7a8b8"></span>
+        <span style="background:#f7b731"></span>
+        <span style="background:#a8e6cf"></span>
+        <span style="background:#a0c4ff"></span>
+        <span style="background:#c9b1ff"></span>
+    </div>
+    <p>made with my hand — for heal</p>
+</footer>
+
 <div class="modal-overlay" id="editModal">
     <div class="modal">
         <h2>Edit Profil</h2>
@@ -587,15 +492,35 @@
 <div class="toast" id="toast"></div>
 
 <script>
-    const token    = localStorage.getItem('token');
-    const myName   = localStorage.getItem('username');
-    const params   = new URLSearchParams(location.search);
+    const token  = localStorage.getItem('token');
+    const myName = localStorage.getItem('username');
+    const params = new URLSearchParams(location.search);
     const username = params.get('u') || myName;
 
     let profileData = null;
     let newAvatarFile = null;
 
-    // NAV
+    window.addEventListener('pageshow', () => {
+        document.getElementById('pageTransition').classList.remove('active');
+    });
+
+    function navigateTo(e, url) {
+        e.preventDefault();
+        const overlay = document.getElementById('pageTransition');
+        overlay.classList.add('active');
+        setTimeout(() => location.href = url, 280);
+    }
+
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+
     const navActions = document.getElementById('navActions');
     if (token) {
         navActions.innerHTML = `
@@ -621,55 +546,54 @@
         { bg: '#fffbd6', emoji: '👻' },
         { bg: '#e8d6ff', emoji: '🐾' },
     ];
+    const tagClass = { refleksi:'tag-refleksi', cerita:'tag-cerita', opini:'tag-opini', lifestyle:'tag-lifestyle' };
 
-    const tagClass = {
-        refleksi: 'tag-refleksi', cerita: 'tag-cerita',
-        opini: 'tag-opini', lifestyle: 'tag-lifestyle'
-    };
+    // Count up animation
+    function animateCount(el, target) {
+        let current = 0;
+        const step = Math.ceil(target / 20);
+        const interval = setInterval(() => {
+            current = Math.min(current + step, target);
+            el.textContent = current;
+            if (current >= target) clearInterval(interval);
+        }, 40);
+    }
 
     async function loadProfile() {
         try {
-            const res  = await fetch(`/api/user/${username}`);
+            const res = await fetch(`/api/user/${username}`);
             if (!res.ok) { document.getElementById('profileUsername').textContent = 'User tidak ditemukan'; return; }
             profileData = await res.json();
 
-            // Username
             document.getElementById('profileUsername').textContent = profileData.username;
             document.title = `${profileData.username} — for heal`;
 
-            // Joined
             const joined = new Date(profileData.created_at);
             document.getElementById('profileJoined').textContent =
                 'Bergabung ' + joined.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
 
-            // Bio
             const bioEl = document.getElementById('profileBio');
             bioEl.innerHTML = profileData.bio
                 ? `<p class="profile-bio">${profileData.bio}</p>`
                 : `<p class="profile-bio-empty">belum ada bio</p>`;
 
-            // Avatar
             renderAvatar(document.getElementById('avatarEl'), profileData);
 
-            // Stats
-            document.getElementById('statArticles').textContent = profileData.articles.length;
-            document.getElementById('statTil').textContent      = profileData.til.length;
-            document.getElementById('statQuotes').textContent   = profileData.quotes.length;
+            // Count up animation for stats
+            animateCount(document.getElementById('statArticles'), profileData.articles.length);
+            animateCount(document.getElementById('statTil'), profileData.til.length);
+            animateCount(document.getElementById('statQuotes'), profileData.quotes.length);
 
-            // Show edit btn if own profile
             if (token && myName === username) {
                 document.getElementById('editProfileBtn').style.display = 'block';
                 document.getElementById('avatarEditBtn').style.display  = 'flex';
             }
 
-            // Render content
             renderArticles(profileData.articles);
             renderTil(profileData.til);
             renderQuotes(profileData.quotes);
 
-        } catch(e) {
-            console.error(e);
-        }
+        } catch(e) { console.error(e); }
     }
 
     function renderAvatar(el, data) {
@@ -682,10 +606,7 @@
 
     function renderArticles(articles) {
         const panel = document.getElementById('panel-articles');
-        if (!articles.length) {
-            document.getElementById('emptyArticles').style.display = 'block';
-            return;
-        }
+        if (!articles.length) { document.getElementById('emptyArticles').style.display = 'block'; return; }
         panel.innerHTML = articles.map((a, i) => {
             const key = (a.tag || '').toLowerCase();
             const cls = tagClass[key] || 'tag-default';
@@ -694,7 +615,7 @@
                 ? `<img src="${a.image_url}" class="post-thumb">`
                 : `<div class="post-thumb-placeholder" style="background:${t.bg}">${t.emoji}</div>`;
             return `
-            <div class="post-card" onclick="location.href='artikel.html?id=${a.id}'">
+            <div class="post-card" data-url="artikel.html?id=${a.id}">
                 ${img}
                 <div class="post-body">
                     <p class="post-tag ${cls}">${a.tag || 'umum'}</p>
@@ -704,32 +625,36 @@
                 </div>
             </div>`;
         }).join('');
+        panel.querySelectorAll('.post-card').forEach(card => {
+            observer.observe(card);
+            card.addEventListener('click', () => {
+                const overlay = document.getElementById('pageTransition');
+                overlay.classList.add('active');
+                setTimeout(() => location.href = card.dataset.url, 280);
+            });
+        });
     }
 
     function renderTil(tils) {
         const panel = document.getElementById('panel-til');
-        if (!tils.length) {
-            document.getElementById('emptyTil').style.display = 'block';
-            return;
-        }
+        if (!tils.length) { document.getElementById('emptyTil').style.display = 'block'; return; }
         panel.innerHTML = tils.map((t, i) => `
-            <div class="til-card" style="animation-delay:${i*0.08}s">
+            <div class="til-card">
                 <p>${t.content}</p>
                 <div class="til-date">📅 ${t.date}</div>
             </div>`).join('');
+        panel.querySelectorAll('.til-card').forEach(c => observer.observe(c));
     }
 
     function renderQuotes(quotes) {
         const panel = document.getElementById('panel-quotes');
-        if (!quotes.length) {
-            document.getElementById('emptyQuotes').style.display = 'block';
-            return;
-        }
+        if (!quotes.length) { document.getElementById('emptyQuotes').style.display = 'block'; return; }
         panel.innerHTML = quotes.map((q, i) => `
-            <div class="quote-card" style="animation-delay:${i*0.08}s">
+            <div class="quote-card">
                 <div class="quote-text">${q.content}</div>
                 ${q.author ? `<div class="quote-author">— ${q.author}</div>` : ''}
             </div>`).join('');
+        panel.querySelectorAll('.quote-card').forEach(c => observer.observe(c));
     }
 
     function switchTab(name, btn) {
@@ -737,9 +662,14 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById('panel-' + name).classList.add('active');
+        // Re-observe after tab switch
+        setTimeout(() => {
+            document.querySelectorAll(`#panel-${name} .post-card, #panel-${name} .til-card, #panel-${name} .quote-card`).forEach(c => {
+                if (!c.classList.contains('visible')) observer.observe(c);
+            });
+        }, 50);
     }
 
-    // EDIT PROFILE
     function openEdit() {
         document.getElementById('bioInput').value = profileData?.bio || '';
         const prev = document.getElementById('modalAvatarPreview');
@@ -770,6 +700,10 @@
 
     async function saveProfile() {
         const bio = document.getElementById('bioInput').value.trim();
+        const saveBtn = document.querySelector('.modal-actions .btn');
+        saveBtn.textContent = 'Menyimpan...';
+        saveBtn.style.opacity = '0.7';
+
         const formData = new FormData();
         formData.append('bio', bio);
         if (newAvatarFile) formData.append('avatar', newAvatarFile);
@@ -781,20 +715,23 @@
                 body: formData
             });
             const data = await res.json();
+            saveBtn.textContent = 'Simpan';
+            saveBtn.style.opacity = '1';
             if (!res.ok) { showToast(data.message || 'Gagal'); return; }
 
             profileData = { ...profileData, ...data.user };
-
-            // Update UI
             const bioEl = document.getElementById('profileBio');
             bioEl.innerHTML = profileData.bio
                 ? `<p class="profile-bio">${profileData.bio}</p>`
                 : `<p class="profile-bio-empty">belum ada bio</p>`;
-            renderAvatar(document.getElementById('avatarEl'), profileData);
-
+            const avatarEl = document.getElementById('avatarEl');
+            avatarEl.style.animation = 'popIn 0.4s ease';
+            renderAvatar(avatarEl, profileData);
             closeEdit();
             showToast('✅ Profil diupdate!');
         } catch {
+            saveBtn.textContent = 'Simpan';
+            saveBtn.style.opacity = '1';
             showToast('Gagal menyimpan');
         }
     }
@@ -806,7 +743,6 @@
         setTimeout(() => t.classList.remove('show'), 2500);
     }
 
-    // Close modal on overlay click
     document.getElementById('editModal').addEventListener('click', function(e) {
         if (e.target === this) closeEdit();
     });
