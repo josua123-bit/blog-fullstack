@@ -889,23 +889,26 @@
         });
 
         // 3. Update komentar real-time di index
-        socket.on('new-comment', async (data) => {
-            try {
-                const res = await fetch(`/api/articles/${data.articleId}`);
-                const article = await res.json();
-                const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
-                if (card) {
+        setInterval(async () => {
+            const cards = document.querySelectorAll('.post-card');
+            for (const card of cards) {
+                const url = card.getAttribute('data-url');
+                if (!url) continue;
+                const articleId = url.split('id=')[1];
+                if (!articleId) continue;
+        
+                try {
+                    const res = await fetch(`/api/articles/${articleId}`);
+                    const article = await res.json();
                     const metaSpans = card.querySelectorAll('.post-meta span');
                     metaSpans.forEach(span => {
                         if (span.textContent.includes('komentar')) {
                             span.textContent = `💬 ${article.comments.length} komentar`;
                         }
                     });
-                }
-            } catch(e) {
-                console.error('Gagal update counter:', e);
+                } catch(e) {}
             }
-        });
+        }, 5000);
 
         // 4. Lihat user online
         socket.on('online-users', (users) => {
