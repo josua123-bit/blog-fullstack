@@ -578,7 +578,7 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
     );
 
     // Real-time broadcast komentar baru
-    broadcastToArticle(parseInt(req.params.id), 'new-comment', {
+    broadcastToAll('new-comment', {
         articleId: parseInt(req.params.id),
         comment: comments.rows[comments.rows.length - 1],
         allComments: comments.rows
