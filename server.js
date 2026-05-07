@@ -370,7 +370,12 @@ app.post('/api/articles', authMiddleware, async (req, res) => {
 });
 
 app.get('/api/articles/:id', async (req, res) => {
-    const article = await pool.query('SELECT * FROM articles WHERE id = $1 AND deleted_at IS NULL', [req.params.id]);
+    const article = await pool.query(`
+        SELECT a.*, u.avatar_url 
+        FROM articles a
+        LEFT JOIN users u ON u.username = a.author
+        WHERE a.id = $1 AND a.deleted_at IS NULL
+    `, [req.params.id]);
     if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
     const comments = await pool.query(
     'SELECT * FROM comments WHERE (article_id = $1 OR (target_type = $2 AND target_id = $1)) AND deleted_at IS NULL ORDER BY created_at ASC',
@@ -472,7 +477,13 @@ app.post('/api/articles/:id/comments', authMiddleware, upload.single('image'), a
 
 // =================== TODAY I LEARNED ===================
 app.get('/api/til', async (req, res) => {
-    const result = await pool.query('SELECT * FROM til WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const result = await pool.query(`
+        SELECT t.*, u.avatar_url 
+        FROM til t
+        LEFT JOIN users u ON u.username = t.username
+        WHERE t.deleted_at IS NULL 
+        ORDER BY t.created_at DESC
+    `);
     res.json(result.rows);
 });
 
@@ -505,7 +516,13 @@ app.delete('/api/til/:id', authMiddleware, async (req, res) => {
 
 // =================== QUOTES ===================
 app.get('/api/quotes', async (req, res) => {
-    const result = await pool.query('SELECT * FROM quotes WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 20');
+    const result = await pool.query(`
+        SELECT q.*, u.avatar_url 
+        FROM quotes q
+        LEFT JOIN users u ON u.username = q.username
+        WHERE q.deleted_at IS NULL 
+        ORDER BY q.created_at DESC LIMIT 20
+    `);
     res.json(result.rows);
 });
 
@@ -538,7 +555,13 @@ app.delete('/api/quotes/:id', authMiddleware, async (req, res) => {
 
 // =================== VOICE NOTES ===================
 app.get('/api/voicenotes', async (req, res) => {
-    const result = await pool.query('SELECT * FROM voice_notes WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const result = await pool.query(`
+        SELECT v.*, u.avatar_url 
+        FROM voice_notes v
+        LEFT JOIN users u ON u.username = v.username
+        WHERE v.deleted_at IS NULL 
+        ORDER BY v.created_at DESC
+    `);
     res.json(result.rows);
 });
 
@@ -619,7 +642,13 @@ app.delete('/api/admin/voicenotes/:id', adminMiddleware, async (req, res) => {
 
 app.get('/api/admin/all', adminMiddleware, async (req, res) => {
     const users = await pool.query('SELECT id, username, created_at FROM users ORDER BY created_at DESC');
-    const articles = await pool.query('SELECT * FROM articles WHERE deleted_at IS NULL ORDER BY created_at DESC');
+    const articles = await pool.query(`
+        SELECT a.*, u.avatar_url 
+        FROM articles a
+        LEFT JOIN users u ON u.username = a.author
+        WHERE a.deleted_at IS NULL 
+     ORDER BY a.created_at DESC
+    `);
     const comments = await pool.query('SELECT * FROM comments WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const quotes = await pool.query('SELECT * FROM quotes WHERE deleted_at IS NULL ORDER BY created_at DESC');
     const til = await pool.query('SELECT * FROM til WHERE deleted_at IS NULL ORDER BY created_at DESC');

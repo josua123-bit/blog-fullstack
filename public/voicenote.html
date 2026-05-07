@@ -425,10 +425,13 @@
                 <div class="note-card">
                     <p class="note-title">🎙️ ${n.title}</p>
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                        <a href="profile.html?u=${n.username}" style="font-size:12px;font-weight:700;color:#bbb;text-decoration:none;" 
-                        onmouseover="this.style.color='#f4845f'" onmouseout="this.style.color='#bbb'">
-                        👤 ${n.username}
-                        </a>
+                       <a href="profile.html?u=${n.username}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;color:#888;font-size:12px;font-weight:700;">
+                            ${n.avatar_url
+                            ? `<img src="${n.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+                            : `<span style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#f4845f,#f7b731);display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#fff;">${n.username.charAt(0).toUpperCase()}</span>`
+                        }
+                        ${n.username}
+                    </a>
                         <p class="note-date" style="margin-bottom:0;">📅 ${n.date}</p>
                     </div>
                         <audio class="note-audio" controls src="${n.url}"></audio>
