@@ -569,6 +569,7 @@
         ];
 
         function showGreeting() {
+            localStorage.setItem('greetingShown', 'true');
             const box   = document.getElementById("aiGreeting");
             const text  = document.getElementById("aiText");
             const emoji = document.getElementById("aiEmoji");
@@ -590,8 +591,13 @@
         }
 
         window.addEventListener("load", () => {
-            setTimeout(showGreeting, 300);
+            const sudahPernah = localStorage.getItem('greetingShown');
+            if (!sudahPernah) {
+                setTimeout(showGreeting, 300);
+                localStorage.setItem('greetingShown', 'true');
+            }
         });
+
     </script>
     <script src="push-init.js"></script>
 </body>
