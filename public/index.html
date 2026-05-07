@@ -591,6 +591,12 @@
     <script>
         const token    = localStorage.getItem('token');
         const username = localStorage.getItem('username');
+
+        window.addEventListener('pageshow', (e) => {
+            const overlay = document.getElementById('pageTransition');
+            overlay.classList.remove('active');
+        });
+
         if (token) {
             document.getElementById('guestNav').style.display = 'none';
             document.getElementById('userNav').style.display  = 'flex';
