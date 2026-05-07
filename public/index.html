@@ -795,7 +795,10 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         // ===== INISIALISASI SOCKET =====
-        const socket = io();
+        const socket = io({
+            transports: ['websocket', 'polling'],
+            upgrade: true
+        });
 
         // Identifikasi user kalau udah login
         if (token && username) {
@@ -886,17 +889,21 @@
         });
 
         // 3. Update komentar real-time di index
-        socket.on('new-comment', (data) => {
-            console.log('💬 Komentar baru di artikel:', data.articleId, 'Total:', data.allComments?.length);
-    
-            const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
-            if (card && data.allComments) {
-                const metaSpans = card.querySelectorAll('.post-meta span');
-                metaSpans.forEach(span => {
-                    if (span.textContent.includes('komentar')) {
-                        span.textContent = `💬 ${data.allComments.length} komentar`;
-                    }
-                });
+        socket.on('new-comment', async (data) => {
+            try {
+                const res = await fetch(`/api/articles/${data.articleId}`);
+                const article = await res.json();
+                const card = document.querySelector(`[data-url="artikel.html?id=${data.articleId}"]`);
+                if (card) {
+                    const metaSpans = card.querySelectorAll('.post-meta span');
+                    metaSpans.forEach(span => {
+                        if (span.textContent.includes('komentar')) {
+                            span.textContent = `💬 ${article.comments.length} komentar`;
+                        }
+                    });
+                }
+            } catch(e) {
+                console.error('Gagal update counter:', e);
             }
         });
 
