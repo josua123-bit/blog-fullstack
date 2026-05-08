@@ -193,6 +193,11 @@
     </style>
 </head>
 <body>
+    <script>
+if (sessionStorage.getItem('pinVerified') !== 'true') {
+    location.href = '/index.html';
+}
+</script>
     <nav>
         <a href="index.html" class="logo">
             <svg width="28" height="28" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">

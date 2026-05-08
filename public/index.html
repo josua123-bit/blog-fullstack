@@ -502,6 +502,58 @@
     </style>
 </head>
 <body>
+    </head>
+<body>
+
+<div id="pinGate" style="position:fixed;inset:0;background:#fff;z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;font-family:'Nunito',sans-serif;">
+    <div style="text-align:center;max-width:360px;padding:24px;">
+        <div style="font-size:48px;margin-bottom:16px;">🔐</div>
+        <h2 style="font-size:24px;font-weight:900;color:#2d2d2d;margin-bottom:8px;">PIN Required</h2>
+        <p style="font-size:14px;color:#aaa;margin-bottom:24px;">just for u and me</p>
+        <input type="password" id="pinInput" placeholder="Masukkan PIN..." maxlength="8" style="width:100%;padding:14px;border:2px solid #f0ece8;border-radius:14px;font-size:18px;text-align:center;font-weight:700;outline:none;font-family:'Nunito',sans-serif;letter-spacing:6px;" onkeydown="if(event.key==='Enter')verifyPIN()">
+        <p id="pinError" style="color:#e05060;font-size:13px;margin-top:12px;display:none;"></p>
+        <button onclick="verifyPIN()" style="margin-top:16px;background:#2d2d2d;color:#fff;border:none;border-radius:30px;padding:12px 32px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">Masuk →</button>
+    </div>
+</div>
+
+<script>
+if (sessionStorage.getItem('pinVerified') !== 'true') {
+    document.getElementById('pinGate').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+async function verifyPIN() {
+    const pin = document.getElementById('pinInput').value;
+    const error = document.getElementById('pinError');
+    
+    try {
+        const res = await fetch('/api/verify-pin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin })
+        });
+        
+        if (res.ok) {
+            sessionStorage.setItem('pinVerified', 'true');
+            document.getElementById('pinGate').style.opacity = '0';
+            document.getElementById('pinGate').style.transition = 'opacity 0.3s';
+            document.body.style.overflow = '';
+            setTimeout(() => {
+                document.getElementById('pinGate').style.display = 'none';
+            }, 300);
+        } else {
+            error.textContent = 'clue tanggal kamu waktu bilang IYAA MAUUU';
+            error.style.display = 'block';
+            document.getElementById('pinInput').value = '';
+            document.getElementById('pinInput').style.borderColor = '#ffb3c1';
+            document.getElementById('pinInput').focus();
+        }
+    } catch {
+        error.textContent = 'Gagal terhubung, coba lagi ya.';
+        error.style.display = 'block';
+    }
+}
+</script>
 
     <!-- PAGE TRANSITION OVERLAY -->
     <div class="page-transition" id="pageTransition"></div>

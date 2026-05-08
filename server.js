@@ -988,6 +988,18 @@ app.delete('/api/comments/:id', authMiddleware, async (req, res) => {
     res.json({ message: 'Komentar berhasil dihapus!' });
 });
 
+// =================== PIN GATE ===================
+const WEB_PIN = process.env.WEB_PIN || '03052026';
+
+app.post('/api/verify-pin', (req, res) => {
+    const { pin } = req.body;
+    if (pin === WEB_PIN) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false });
+    }
+});
+
 // =================== START ===================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
