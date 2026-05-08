@@ -534,6 +534,10 @@ async function verifyPIN() {
         });
         
         if (res.ok) {
+            const audio = new Audio('https://res.cloudinary.com/doduayqtb/video/upload/v1778235577/PIN_GATE_g7ke3l.mp3');
+            audio.volume = 0.8;
+            audio.play().catch(() => {});
+
             sessionStorage.setItem('pinVerified', 'true');
             document.getElementById('pinGate').style.opacity = '0';
             document.getElementById('pinGate').style.transition = 'opacity 0.3s';
