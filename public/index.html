@@ -505,16 +505,76 @@
     </head>
 <body>
 
-<div id="pinGate" style="position:fixed;inset:0;background:#fff;z-index:99999;display:none;align-items:center;justify-content:center;flex-direction:column;font-family:'Nunito',sans-serif;">
-    <div style="text-align:center;max-width:360px;padding:24px;">
-        <div style="font-size:48px;margin-bottom:16px;">🔐</div>
-        <h2 style="font-size:24px;font-weight:900;color:#2d2d2d;margin-bottom:8px;">PIN Required</h2>
-        <p style="font-size:14px;color:#aaa;margin-bottom:24px;">just for u and me</p>
-        <input type="password" id="pinInput" placeholder="Masukkan PIN..." maxlength="8" style="width:100%;padding:14px;border:2px solid #f0ece8;border-radius:14px;font-size:18px;text-align:center;font-weight:700;outline:none;font-family:'Nunito',sans-serif;letter-spacing:6px;" onkeydown="if(event.key==='Enter')verifyPIN()">
-        <p id="pinError" style="color:#e05060;font-size:13px;margin-top:12px;display:none;"></p>
-        <button onclick="verifyPIN()" style="margin-top:16px;background:#2d2d2d;color:#fff;border:none;border-radius:30px;padding:12px 32px;font-size:14px;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">Masuk →</button>
+<!-- ===== PIN GATE ===== -->
+<div id="pinGate" style="position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;
+    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 25%, #e1bee7 50%, #bbdefb 75%, #b2dfdb 100%);
+    background-size: 400% 400%;
+    animation: pinBgMove 8s ease infinite;">
+    
+    <div style="background:rgba(255,255,255,0.95);border-radius:24px;padding:40px 32px;max-width:380px;width:90%;text-align:center;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.5);
+        animation: popIn 0.6s ease both;">
+        
+        <!-- Floating emoji -->
+        <div style="font-size:56px;margin-bottom:8px;animation: floatY 3s ease-in-out infinite;">
+            🫶
+        </div>
+        
+        <h2 style="font-size:26px;font-weight:900;color:#2d2d2d;margin-bottom:6px;letter-spacing:-0.5px;">
+            hai nindii
+        </h2>
+        <p style="font-size:13px;color:#ccc;margin-bottom:28px;font-weight:600;">
+            for u and me
+        </p>
+        
+        <!-- PIN Input -->
+        <div style="position:relative;margin-bottom:20px;">
+            <input type="password" id="pinInput" placeholder="••••••••" maxlength="8" 
+                style="width:100%;padding:16px;border:2px solid #f0ece8;border-radius:16px;font-size:20px;
+                text-align:center;font-weight:800;outline:none;font-family:'Nunito',sans-serif;
+                letter-spacing:8px;background:#fafafa;transition:all 0.3s;color:#2d2d2d;"
+                onkeydown="if(event.key==='Enter')verifyPIN()"
+                onfocus="this.style.borderColor='#f8bbd0';this.style.boxShadow='0 0 0 4px rgba(248,187,208,0.15)';this.style.background='#fff'"
+                onblur="this.style.borderColor='#f0ece8';this.style.boxShadow='none';this.style.background='#fafafa'">
+            <span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:20px;pointer-events:none;">🔐</span>
+        </div>
+        
+        <!-- Error message -->
+        <p id="pinError" style="color:#e05060;font-size:12px;font-weight:700;margin-bottom:16px;display:none;
+            background:#fff0f2;padding:8px 14px;border-radius:10px;">
+        </p>
+        
+        <!-- Submit button -->
+        <button onclick="verifyPIN()" 
+            style="width:100%;padding:14px;background:linear-gradient(90deg,#f4845f,#f7b731);color:#fff;
+            border:none;border-radius:16px;font-size:15px;font-weight:800;cursor:pointer;
+            font-family:'Nunito',sans-serif;transition:all 0.3s;letter-spacing:0.5px;
+            box-shadow:0 4px 16px rgba(244,132,95,0.25);"
+            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(244,132,95,0.35)'"
+            onmouseout="this.style.transform='';this.style.boxShadow='0 4px 16px rgba(244,132,95,0.25)'">
+            Masuk
+        </button>
+        
+        <p style="font-size:11px;color:#030303;margin-top:20px;font-weight:600;">
+           I LOVE U
+        </p>
     </div>
 </div>
+
+<style>
+    @keyframes pinBgMove {
+        0%,100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+    @keyframes popIn {
+        0% { opacity:0; transform:scale(0.9) translateY(10px); }
+        100% { opacity:1; transform:scale(1) translateY(0); }
+    }
+    @keyframes floatY {
+        0%,100% { transform:translateY(0); }
+        50% { transform:translateY(-8px); }
+    }
+</style>
 
 <script>
 if (sessionStorage.getItem('pinVerified') !== 'true') {
@@ -525,6 +585,8 @@ if (sessionStorage.getItem('pinVerified') !== 'true') {
 async function verifyPIN() {
     const pin = document.getElementById('pinInput').value;
     const error = document.getElementById('pinError');
+    const input = document.getElementById('pinInput');
+    const btn = document.querySelector('#pinGate button');
     
     try {
         const res = await fetch('/api/verify-pin', {
@@ -534,23 +596,32 @@ async function verifyPIN() {
         });
         
         if (res.ok) {
+            // Suara + animasi sukses
             const audio = new Audio('https://res.cloudinary.com/doduayqtb/video/upload/v1778235577/PIN_GATE_g7ke3l.mp3');
             audio.volume = 0.8;
             audio.play().catch(() => {});
-
-            sessionStorage.setItem('pinVerified', 'true');
-            document.getElementById('pinGate').style.opacity = '0';
-            document.getElementById('pinGate').style.transition = 'opacity 0.3s';
-            document.body.style.overflow = '';
+            
+            btn.textContent = 'Yeay! Berhasil 🎉';
+            btn.style.background = 'linear-gradient(90deg,#2d9e6b,#7ec8c8)';
+            input.style.borderColor = '#90ddb8';
+            
             setTimeout(() => {
-                document.getElementById('pinGate').style.display = 'none';
-            }, 300);
+                sessionStorage.setItem('pinVerified', 'true');
+                document.getElementById('pinGate').style.opacity = '0';
+                document.getElementById('pinGate').style.transition = 'opacity 0.5s';
+                document.body.style.overflow = '';
+                setTimeout(() => {
+                    document.getElementById('pinGate').style.display = 'none';
+                }, 500);
+            }, 600);
         } else {
-            error.textContent = 'clue tanggal kamu waktu bilang IYAA MAUUU';
+            error.textContent = '💬 clue: tanggal kamu waktu bilang IYAA MAUUU';
             error.style.display = 'block';
-            document.getElementById('pinInput').value = '';
-            document.getElementById('pinInput').style.borderColor = '#ffb3c1';
-            document.getElementById('pinInput').focus();
+            input.value = '';
+            input.style.borderColor = '#ffb3c1';
+            input.style.animation = 'shake 0.5s';
+            input.focus();
+            setTimeout(() => input.style.animation = '', 500);
         }
     } catch {
         error.textContent = 'Gagal terhubung, coba lagi ya.';
@@ -558,6 +629,15 @@ async function verifyPIN() {
     }
 }
 </script>
+
+<style>
+    @keyframes shake {
+        0%,100% { transform: translateX(0); }
+        25% { transform: translateX(-6px); }
+        75% { transform: translateX(6px); }
+    }
+</style>
+<!-- ===== END PIN GATE ===== -->
 
     <!-- PAGE TRANSITION OVERLAY -->
     <div class="page-transition" id="pageTransition"></div>
