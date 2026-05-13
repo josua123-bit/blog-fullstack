@@ -1000,6 +1000,69 @@ app.post('/api/verify-pin', (req, res) => {
     }
 });
 
+// =================== ADMIN EDIT ===================
+app.put('/api/articles/:id', authMiddleware, async (req, res) => {
+    const article = await pool.query('SELECT * FROM articles WHERE id = $1', [req.params.id]);
+    if (article.rows.length === 0) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
+    
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (article.rows[0].author !== req.user.username && !isAdmin) {
+        return res.status(403).json({ message: 'Tidak punya izin' });
+    }
+    
+    const { title, tag, content } = req.body;
+    await pool.query(
+        'UPDATE articles SET title = $1, tag = $2, content = $3 WHERE id = $4',
+        [title, tag, content, req.params.id]
+    );
+    
+    res.json({ message: 'Artikel berhasil diupdate!' });
+});
+
+// Edit TIL
+app.put('/api/til/:id', authMiddleware, async (req, res) => {
+    const til = await pool.query('SELECT * FROM til WHERE id = $1', [req.params.id]);
+    if (til.rows.length === 0) return res.status(404).json({ message: 'TIL tidak ditemukan' });
+    
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (til.rows[0].username !== req.user.username && !isAdmin) {
+        return res.status(403).json({ message: 'Tidak punya izin' });
+    }
+    
+    await pool.query('UPDATE til SET content = $1 WHERE id = $2', [req.body.content, req.params.id]);
+    res.json({ message: 'TIL berhasil diupdate!' });
+});
+
+// Edit Quote
+app.put('/api/quotes/:id', authMiddleware, async (req, res) => {
+    const quote = await pool.query('SELECT * FROM quotes WHERE id = $1', [req.params.id]);
+    if (quote.rows.length === 0) return res.status(404).json({ message: 'Quote tidak ditemukan' });
+    
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (quote.rows[0].username !== req.user.username && !isAdmin) {
+        return res.status(403).json({ message: 'Tidak punya izin' });
+    }
+    
+    const { content, author } = req.body;
+    await pool.query('UPDATE quotes SET content = $1, author = $2 WHERE id = $3', [content, author, req.params.id]);
+    res.json({ message: 'Quote berhasil diupdate!' });
+});
+
+// Edit Voice Note
+app.put('/api/voicenotes/:id', authMiddleware, async (req, res) => {
+    const vn = await pool.query('SELECT * FROM voice_notes WHERE id = $1', [req.params.id]);
+    if (vn.rows.length === 0) return res.status(404).json({ message: 'Voice note tidak ditemukan' });
+    
+    const isAdmin = req.user.username === process.env.ADMIN;
+    if (vn.rows[0].username !== req.user.username && !isAdmin) {
+        return res.status(403).json({ message: 'Tidak punya izin' });
+    }
+    
+    const { title } = req.body;
+    await pool.query('UPDATE voice_notes SET title = $1 WHERE id = $2', [title, req.params.id]);
+    res.json({ message: 'Voice note berhasil diupdate!' });
+});
+
 // =================== START ===================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
