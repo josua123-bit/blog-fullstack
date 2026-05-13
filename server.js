@@ -273,7 +273,7 @@ app.post('/api/login', async (req, res) => {
     if (!user) return res.status(400).json({ message: 'User tidak ditemukan' });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ message: 'Password salah' });
-    const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '365d' });
     res.json({ token, username });
 });
 
